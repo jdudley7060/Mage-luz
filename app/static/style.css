@@ -1,0 +1,9 @@
+body { font-family: Inter, system-ui, sans-serif; margin: 0; background: #0f1115; color: #ececf1; }
+main { max-width: 1000px; margin: 24px auto; padding: 16px; }
+section { background: #171a21; border: 1px solid #2b2f38; border-radius: 8px; padding: 12px; margin: 14px 0; }
+button { background: #6f8cff; color: white; border: none; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+input, select { background: #0f1115; color: #ececf1; border: 1px solid #2b2f38; border-radius: 6px; padding: 6px; }
+.companies { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px; max-height: 220px; overflow: auto; }
+table { width: 100%; border-collapse: collapse; }
+td, th { border-bottom: 1px solid #2b2f38; padding: 8px; text-align: left; vertical-align: top; }
+pre { white-space: pre-wrap; }

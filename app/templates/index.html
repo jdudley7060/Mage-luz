@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mage-Luz MVP</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <main>
+    <h1>Mage-Luz MVP</h1>
+    <p>Upload resume → infer role fit → ingest jobs → rank → tailor top matches → track status.</p>
+
+    <section>
+      <h2>1) Seed companies/tiers</h2>
+      <form action="/seed-companies" method="post">
+        <button type="submit">Seed from tier list</button>
+      </form>
+      <p>{{ companies|length }} companies loaded.</p>
+    </section>
+
+    <section>
+      <h2>2) Upload resume (PDF/DOCX/TXT)</h2>
+      <form action="/upload-resume" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required />
+        <button type="submit">Upload + Parse + Infer Roles</button>
+      </form>
+      <ul>
+      {% for r in resumes %}
+        <li><strong>{{ r.file_name }}</strong> — roles: {{ r.role_profile.top_roles }}</li>
+      {% endfor %}
+      </ul>
+    </section>
+
+    <section>
+      <h2>3) Ingest jobs (pick companies)</h2>
+      <form action="/ingest-jobs" method="post">
+        <div class="companies">
+        {% for c in companies %}
+          <label><input type="checkbox" name="company_ids" value="{{ c.id }}"> {{ c.name }} ({{ c.tier }})</label>
+        {% endfor %}
+        </div>
+        <button type="submit">Ingest jobs</button>
+      </form>
+      <p>{{ jobs|length }} jobs currently loaded.</p>
+    </section>
+
+    <section>
+      <h2>4) Run matching</h2>
+      <form action="/run-matching" method="post">
+        <select name="resume_id" required>
+          {% for r in resumes %}
+          <option value="{{ r.id }}">{{ r.file_name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">Rank jobs</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Top matches</h2>
+      <table>
+        <tr><th>Company</th><th>Role</th><th>Score</th><th>Reasons</th><th>Status</th><th>Track</th></tr>
+        {% for m in matches[:20] %}
+        <tr>
+          <td>{{ m.company_name }}</td>
+          <td>{{ m.title }}</td>
+          <td>{{ m.final_score }}</td>
+          <td>{{ m.reason_codes|join(', ') }}</td>
+          <td>{{ m.status }}</td>
+          <td>
+            <form action="/track-event" method="post">
+              <input type="hidden" name="match_id" value="{{ m.id }}" />
+              <select name="event_type">
+                <option value="saved">saved</option>
+                <option value="applied">applied</option>
+                <option value="interview">interview</option>
+                <option value="rejected">rejected</option>
+              </select>
+              <button type="submit">Update</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </section>
+
+    <section>
+      <h2>5) Tailor top matches</h2>
+      <form action="/tailor-top" method="post">
+        <select name="resume_id" required>
+          {% for r in resumes %}
+          <option value="{{ r.id }}">{{ r.file_name }}</option>
+          {% endfor %}
+        </select>
+        <input type="number" min="1" max="10" value="3" name="top_n" />
+        <button type="submit">Generate tailored bullets</button>
+      </form>
+      <ul>
+      {% for v in variants %}
+        <li>
+          <strong>{{ v.company_name }} — {{ v.job_title }} ({{ v.score }})</strong>
+          <pre>{{ v.variant_text }}</pre>
+        </li>
+      {% endfor %}
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
