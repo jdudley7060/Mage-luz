@@ -12,6 +12,30 @@
     <p>Upload resume → infer role fit → ingest jobs → rank → tailor top matches → track status.</p>
 
     <section>
+      <div class="row">
+        <div>
+          <strong>{{ user.email }}</strong> · plan: <strong>{{ user.plan }}</strong>
+          <div>Preferred locations: {{ user.preferred_locations|join(', ') }}</div>
+        </div>
+        <form action="/logout" method="post"><button type="submit">Logout</button></form>
+      </div>
+      <form action="/update-preferences" method="post" class="inline-form">
+        <input type="text" name="preferred_locations" value="{{ user.preferred_locations|join(', ') }}" />
+        <button type="submit">Update location prefs</button>
+      </form>
+    </section>
+
+    {% if locked_count > 0 and not user.is_paid %}
+    <section class="paywall">
+      <h2>🔒 Free plan limit reached</h2>
+      <p>You can view top 3 jobs. {{ locked_count }} more are behind the Pro plan at <strong>$7.99/month</strong>.</p>
+      <form action="/mock-upgrade" method="post">
+        <button type="submit">Unlock Pro (MVP test button)</button>
+      </form>
+    </section>
+    {% endif %}
+
+    <section>
       <h2>1) Seed companies/tiers</h2>
       <form action="/seed-companies" method="post">
         <button type="submit">Seed from tier list</button>
@@ -58,7 +82,7 @@
     </section>
 
     <section>
-      <h2>Top matches</h2>
+      <h2>Top matches {% if not user.is_paid %}(top 3 on free){% endif %}</h2>
       <table>
         <tr><th>Company</th><th>Role</th><th>Score</th><th>Reasons</th><th>Status</th><th>Track</th></tr>
         {% for m in matches[:20] %}

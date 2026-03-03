@@ -10,7 +10,7 @@ class DataStore:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
         if not self.path.exists():
-            self.save({"resumes": [], "companies": [], "jobs": [], "matches": [], "variants": [], "events": []})
+            self.save({"users": [], "resumes": [], "companies": [], "jobs": [], "matches": [], "variants": [], "events": []})
 
     def load(self) -> dict[str, Any]:
         return json.loads(self.path.read_text())

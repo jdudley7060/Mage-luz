@@ -129,19 +129,27 @@ def ingest_jobs_for_companies(companies: list[dict[str, Any]]) -> list[dict[str,
     return jobs
 
 
-def rank_jobs(resume: dict[str, Any], jobs: list[dict[str, Any]], companies: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def rank_jobs(
+    resume: dict[str, Any], jobs: list[dict[str, Any]], companies: list[dict[str, Any]], preferred_locations: list[str] | None = None
+) -> list[dict[str, Any]]:
     profile = resume.get("role_profile", {})
     keywords = [k.lower() for k in profile.get("keywords", [])]
     top_roles = [r["role"] for r in profile.get("top_roles", [])]
 
+    pref = [p.lower() for p in (preferred_locations or [])]
+
     matches = []
     for j in jobs:
         text = f"{j.get('title','')} {j.get('description','')}".lower()
+        location_text = (j.get("location", "") or "").lower()
         skill_overlap = min(100, sum(1 for k in keywords[:25] if k in text) * 5)
         role_fit = 80 if any(r.split("_")[0] in text for r in top_roles) else 55
         seniority_fit = 70
         tier_weight = TIER_WEIGHT.get(j.get("tier", "B"), 60)
-        location_fit = 85 if any(x in (j.get("location", "").lower()) for x in ["remote", "san francisco", "new york"]) else 60
+        if any(p in location_text for p in pref) or "remote" in location_text:
+            location_fit = 90
+        else:
+            location_fit = 55
         recency = 80
         domain = 70
         final_score = round(

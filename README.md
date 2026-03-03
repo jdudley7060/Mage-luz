@@ -1,6 +1,6 @@
 # Mage-Luz MVP (today build)
 
-Web app implementing the 6-step MVP loop:
+Web app implementing the 6-step MVP loop with login-gated features and a free-vs-pro recommendation wall:
 
 1. Seed company tiers
 2. Upload + parse resume (PDF/DOCX/TXT)
@@ -8,6 +8,11 @@ Web app implementing the 6-step MVP loop:
 4. Rank matches using weighted scoring formula
 5. Generate tailored bullet variants for top jobs
 6. Track funnel status (`saved/applied/interview/rejected`)
+
+Access model:
+- Login required for all core features
+- Free plan sees top 3 matched jobs
+- Remaining matches are gated behind Pro ($7.99/month, mock upgrade button in MVP)
 
 ## Run
 

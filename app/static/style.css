@@ -7,3 +7,6 @@ input, select { background: #0f1115; color: #ececf1; border: 1px solid #2b2f38; 
 table { width: 100%; border-collapse: collapse; }
 td, th { border-bottom: 1px solid #2b2f38; padding: 8px; text-align: left; vertical-align: top; }
 pre { white-space: pre-wrap; }
+.row { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.inline-form { margin-top: 10px; }
+.paywall { border-color: #7d4f1a; background: #22180d; }
