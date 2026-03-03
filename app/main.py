@@ -3,10 +3,14 @@ from __future__ import annotations
 import io
 import os
 import re
+import secrets
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -20,8 +24,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 UPLOAD_DIR = BASE_DIR / "data" / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+SESSION_SECRET = os.getenv("SESSION_SECRET", "dev-secret-change-me")
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+ph = PasswordHasher()
+
 app = FastAPI(title="Mage-Luz MVP")
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "dev-secret-change-me"))
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SESSION_SECRET,
+    same_site="lax",
+    https_only=COOKIE_SECURE,
+    max_age=60 * 60 * 24,
+)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "app" / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 store = DataStore(BASE_DIR / "data" / "db.json")
@@ -31,7 +45,6 @@ def _extract_text(file_name: str, data: bytes) -> str:
     lower = file_name.lower()
     if lower.endswith(".txt"):
         return data.decode("utf-8", errors="ignore")
-
     if lower.endswith(".pdf"):
         try:
             from pypdf import PdfReader
@@ -40,7 +53,6 @@ def _extract_text(file_name: str, data: bytes) -> str:
             return "\n".join([p.extract_text() or "" for p in pdf.pages])
         except Exception:
             return ""
-
     if lower.endswith(".docx"):
         try:
             import docx
@@ -49,8 +61,48 @@ def _extract_text(file_name: str, data: bytes) -> str:
             return "\n".join([p.text for p in doc.paragraphs])
         except Exception:
             return ""
-
     return data.decode("utf-8", errors="ignore")
+
+
+def _csrf_token(request: Request) -> str:
+    token = request.session.get("csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        request.session["csrf_token"] = token
+    return token
+
+
+def _check_csrf(request: Request, token: str) -> bool:
+    expected = request.session.get("csrf_token")
+    return bool(expected and token and secrets.compare_digest(expected, token))
+
+
+def _client_key(request: Request, email: str) -> str:
+    ip = request.client.host if request.client else "unknown"
+    return f"{email.lower()}::{ip}"
+
+
+def _is_rate_limited(state: dict, key: str) -> tuple[bool, int]:
+    record = (state.get("login_attempts") or {}).get(key, {"count": 0, "locked_until": 0})
+    now = int(time.time())
+    if record.get("locked_until", 0) > now:
+        return True, int(record["locked_until"] - now)
+    return False, 0
+
+
+def _record_failed_attempt(state: dict, key: str) -> None:
+    attempts = state.setdefault("login_attempts", {})
+    record = attempts.get(key, {"count": 0, "locked_until": 0})
+    record["count"] = record.get("count", 0) + 1
+    if record["count"] >= 5:
+        record["locked_until"] = int(time.time()) + 15 * 60
+        record["count"] = 0
+    attempts[key] = record
+
+
+def _clear_attempts(state: dict, key: str) -> None:
+    attempts = state.setdefault("login_attempts", {})
+    attempts.pop(key, None)
 
 
 def _current_user(request: Request, state: dict):
@@ -67,21 +119,34 @@ def _require_user(request: Request, state: dict):
     return user, None
 
 
+def _render_login(request: Request, error: str | None = None):
+    return templates.TemplateResponse("login.html", {"request": request, "error": error, "csrf_token": _csrf_token(request)})
+
+
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    return _render_login(request)
 
 
 @app.post("/register")
-def register(request: Request, email: str = Form(...), password: str = Form(...), preferred_locations: str = Form(default="New York,San Francisco")):
+def register(
+    request: Request,
+    csrf_token: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    preferred_locations: str = Form(default="New York,San Francisco"),
+):
+    if not _check_csrf(request, csrf_token):
+        return _render_login(request, "Session expired. Refresh and try again.")
+
     state = store.load()
     if any(u["email"].lower() == email.lower() for u in state.get("users", [])):
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Email already exists."})
+        return _render_login(request, "Email already exists.")
 
     user = {
         "id": str(uuid.uuid4()),
         "email": email,
-        "password": password,
+        "password_hash": ph.hash(password),
         "is_paid": False,
         "plan": "free",
         "preferred_locations": [x.strip() for x in preferred_locations.split(",") if x.strip()],
@@ -94,23 +159,58 @@ def register(request: Request, email: str = Form(...), password: str = Form(...)
 
 
 @app.post("/login")
-def login(request: Request, email: str = Form(...), password: str = Form(...)):
+def login(request: Request, csrf_token: str = Form(...), email: str = Form(...), password: str = Form(...)):
+    if not _check_csrf(request, csrf_token):
+        return _render_login(request, "Session expired. Refresh and try again.")
+
     state = store.load()
-    user = next((u for u in state.get("users", []) if u["email"].lower() == email.lower() and u["password"] == password), None)
+    key = _client_key(request, email)
+    limited, wait_s = _is_rate_limited(state, key)
+    if limited:
+        return _render_login(request, f"Too many attempts. Try again in {wait_s}s.")
+
+    user = next((u for u in state.get("users", []) if u["email"].lower() == email.lower()), None)
     if not user:
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials."})
+        _record_failed_attempt(state, key)
+        store.save(state)
+        return _render_login(request, "Invalid credentials.")
+
+    ok = False
+    if user.get("password_hash"):
+        try:
+            ok = ph.verify(user["password_hash"], password)
+        except VerifyMismatchError:
+            ok = False
+    elif user.get("password") == password:
+        # legacy migration path
+        user["password_hash"] = ph.hash(password)
+        user.pop("password", None)
+        ok = True
+
+    if not ok:
+        _record_failed_attempt(state, key)
+        store.save(state)
+        return _render_login(request, "Invalid credentials.")
+
+    _clear_attempts(state, key)
+    store.save(state)
     request.session["user_id"] = user["id"]
     return RedirectResponse(url="/", status_code=303)
 
 
 @app.post("/logout")
-def logout(request: Request):
+def logout(request: Request, csrf_token: str = Form(...)):
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse(url="/", status_code=303)
     request.session.clear()
     return RedirectResponse(url="/login", status_code=303)
 
 
 @app.post("/mock-upgrade")
-def mock_upgrade(request: Request):
+def mock_upgrade(request: Request, csrf_token: str = Form(...)):
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse(url="/", status_code=303)
+
     state = store.load()
     user, redirect = _require_user(request, state)
     if redirect:
@@ -146,12 +246,16 @@ def home(request: Request):
             "matches": visible_matches,
             "variants": variants,
             "locked_count": locked_count,
+            "csrf_token": _csrf_token(request),
         },
     )
 
 
 @app.post("/seed-companies")
-def seed_companies(request: Request):
+def seed_companies(request: Request, csrf_token: str = Form(...)):
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse(url="/", status_code=303)
+
     state = store.load()
     _, redirect = _require_user(request, state)
     if redirect:
@@ -163,7 +267,10 @@ def seed_companies(request: Request):
 
 
 @app.post("/update-preferences")
-def update_preferences(request: Request, preferred_locations: str = Form(...)):
+def update_preferences(request: Request, csrf_token: str = Form(...), preferred_locations: str = Form(...)):
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse(url="/", status_code=303)
+
     state = store.load()
     user, redirect = _require_user(request, state)
     if redirect:
@@ -175,7 +282,10 @@ def update_preferences(request: Request, preferred_locations: str = Form(...)):
 
 
 @app.post("/upload-resume")
-async def upload_resume(request: Request, file: UploadFile = File(...)):
+async def upload_resume(request: Request, csrf_token: str = Form(...), file: UploadFile = File(...)):
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse(url="/", status_code=303)
+
     state = store.load()
     user, redirect = _require_user(request, state)
     if redirect:
@@ -206,33 +316,37 @@ async def upload_resume(request: Request, file: UploadFile = File(...)):
 
 
 @app.post("/ingest-jobs")
-def ingest_jobs(request: Request, company_ids: list[str] = Form(default=[])):
+def ingest_jobs(request: Request, csrf_token: str = Form(...), company_ids: list[str] = Form(default=[])):
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse(url="/", status_code=303)
+
     state = store.load()
     _, redirect = _require_user(request, state)
     if redirect:
         return redirect
 
     companies = [c for c in state.get("companies", []) if c["id"] in company_ids]
-    jobs = ingest_jobs_for_companies(companies)
-    state["jobs"] = jobs
+    state["jobs"] = ingest_jobs_for_companies(companies)
     store.save(state)
     return RedirectResponse(url="/", status_code=303)
 
 
 @app.post("/run-matching")
-def run_matching(request: Request, resume_id: str = Form(...)):
+def run_matching(request: Request, csrf_token: str = Form(...), resume_id: str = Form(...)):
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse(url="/", status_code=303)
+
     state = store.load()
     user, redirect = _require_user(request, state)
     if redirect:
         return redirect
 
     resumes = [r for r in state.get("resumes", []) if r.get("user_id") == user["id"]]
-    jobs = state.get("jobs", [])
     resume = next((r for r in resumes if r["id"] == resume_id), None)
     if not resume:
         return RedirectResponse(url="/", status_code=303)
 
-    matches = rank_jobs(resume, jobs, state.get("companies", []), user.get("preferred_locations", []))
+    matches = rank_jobs(resume, state.get("jobs", []), state.get("companies", []), user.get("preferred_locations", []))
     for m in matches:
         m["user_id"] = user["id"]
     state["matches"] = [m for m in state.get("matches", []) if m.get("user_id") != user["id"]] + matches
@@ -241,7 +355,10 @@ def run_matching(request: Request, resume_id: str = Form(...)):
 
 
 @app.post("/tailor-top")
-def tailor_top(request: Request, resume_id: str = Form(...), top_n: int = Form(default=3)):
+def tailor_top(request: Request, csrf_token: str = Form(...), resume_id: str = Form(...), top_n: int = Form(default=3)):
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse(url="/", status_code=303)
+
     state = store.load()
     user, redirect = _require_user(request, state)
     if redirect:
@@ -256,11 +373,10 @@ def tailor_top(request: Request, resume_id: str = Form(...), top_n: int = Form(d
     variants = []
     for m in top_matches:
         job = next((j for j in state.get("jobs", []) if j["id"] == m["job_id"]), None)
-        if not job:
-            continue
-        v = tailor_resume(resume, job, m)
-        v["user_id"] = user["id"]
-        variants.append(v)
+        if job:
+            v = tailor_resume(resume, job, m)
+            v["user_id"] = user["id"]
+            variants.append(v)
 
     state["variants"] = [v for v in state.get("variants", []) if v.get("user_id") != user["id"]] + variants
     store.save(state)
@@ -268,7 +384,10 @@ def tailor_top(request: Request, resume_id: str = Form(...), top_n: int = Form(d
 
 
 @app.post("/track-event")
-def track_event(request: Request, match_id: str = Form(...), event_type: str = Form(...)):
+def track_event(request: Request, csrf_token: str = Form(...), match_id: str = Form(...), event_type: str = Form(...)):
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse(url="/", status_code=303)
+
     state = store.load()
     user, redirect = _require_user(request, state)
     if redirect:

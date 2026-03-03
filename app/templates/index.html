@@ -17,9 +17,10 @@
           <strong>{{ user.email }}</strong> · plan: <strong>{{ user.plan }}</strong>
           <div>Preferred locations: {{ user.preferred_locations|join(', ') }}</div>
         </div>
-        <form action="/logout" method="post"><button type="submit">Logout</button></form>
+        <form action="/logout" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}" /><button type="submit">Logout</button></form>
       </div>
       <form action="/update-preferences" method="post" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <input type="text" name="preferred_locations" value="{{ user.preferred_locations|join(', ') }}" />
         <button type="submit">Update location prefs</button>
       </form>
@@ -30,6 +31,7 @@
       <h2>🔒 Free plan limit reached</h2>
       <p>You can view top 3 jobs. {{ locked_count }} more are behind the Pro plan at <strong>$7.99/month</strong>.</p>
       <form action="/mock-upgrade" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <button type="submit">Unlock Pro (MVP test button)</button>
       </form>
     </section>
@@ -38,6 +40,7 @@
     <section>
       <h2>1) Seed companies/tiers</h2>
       <form action="/seed-companies" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <button type="submit">Seed from tier list</button>
       </form>
       <p>{{ companies|length }} companies loaded.</p>
@@ -46,6 +49,7 @@
     <section>
       <h2>2) Upload resume (PDF/DOCX/TXT)</h2>
       <form action="/upload-resume" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <input type="file" name="file" required />
         <button type="submit">Upload + Parse + Infer Roles</button>
       </form>
@@ -59,6 +63,7 @@
     <section>
       <h2>3) Ingest jobs (pick companies)</h2>
       <form action="/ingest-jobs" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <div class="companies">
         {% for c in companies %}
           <label><input type="checkbox" name="company_ids" value="{{ c.id }}"> {{ c.name }} ({{ c.tier }})</label>
@@ -72,6 +77,7 @@
     <section>
       <h2>4) Run matching</h2>
       <form action="/run-matching" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <select name="resume_id" required>
           {% for r in resumes %}
           <option value="{{ r.id }}">{{ r.file_name }}</option>
@@ -94,6 +100,7 @@
           <td>{{ m.status }}</td>
           <td>
             <form action="/track-event" method="post">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
               <input type="hidden" name="match_id" value="{{ m.id }}" />
               <select name="event_type">
                 <option value="saved">saved</option>
@@ -112,6 +119,7 @@
     <section>
       <h2>5) Tailor top matches</h2>
       <form action="/tailor-top" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <select name="resume_id" required>
           {% for r in resumes %}
           <option value="{{ r.id }}">{{ r.file_name }}</option>

@@ -14,6 +14,12 @@ Access model:
 - Free plan sees top 3 matched jobs
 - Remaining matches are gated behind Pro ($7.99/month, mock upgrade button in MVP)
 
+Security hardening pass included:
+- Argon2 password hashing (with legacy plaintext migration on first successful login)
+- Session cookies with signed storage and configurable `COOKIE_SECURE`
+- CSRF token checks on all POST forms
+- Basic login rate limiting (temporary lockout after repeated failures)
+
 ## Run
 
 ```bash
