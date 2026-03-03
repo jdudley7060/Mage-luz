@@ -5,10 +5,12 @@ import os
 import re
 import secrets
 import time
+import urllib.parse
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+import requests
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from fastapi import FastAPI, File, Form, Request, UploadFile
@@ -27,6 +29,10 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 SESSION_SECRET = os.getenv("SESSION_SECRET", "dev-secret-change-me")
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 ph = PasswordHasher()
+
+LINKEDIN_CLIENT_ID = os.getenv("LINKEDIN_CLIENT_ID", "")
+LINKEDIN_CLIENT_SECRET = os.getenv("LINKEDIN_CLIENT_SECRET", "")
+LINKEDIN_REDIRECT_URI = os.getenv("LINKEDIN_REDIRECT_URI", "http://localhost:8787/auth/linkedin/callback")
 
 app = FastAPI(title="Mage-Luz MVP")
 app.add_middleware(
@@ -120,12 +126,104 @@ def _require_user(request: Request, state: dict):
 
 
 def _render_login(request: Request, error: str | None = None):
-    return templates.TemplateResponse("login.html", {"request": request, "error": error, "csrf_token": _csrf_token(request)})
+    linkedin_ready = bool(LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET and LINKEDIN_REDIRECT_URI)
+    return templates.TemplateResponse(
+        "login.html",
+        {
+            "request": request,
+            "error": error,
+            "csrf_token": _csrf_token(request),
+            "linkedin_ready": linkedin_ready,
+        },
+    )
 
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     return _render_login(request)
+
+
+@app.get("/auth/linkedin/start")
+def linkedin_start(request: Request):
+    if not (LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET and LINKEDIN_REDIRECT_URI):
+        return _render_login(request, "LinkedIn OAuth is not configured yet.")
+
+    state_token = secrets.token_urlsafe(24)
+    request.session["linkedin_oauth_state"] = state_token
+
+    query = {
+        "response_type": "code",
+        "client_id": LINKEDIN_CLIENT_ID,
+        "redirect_uri": LINKEDIN_REDIRECT_URI,
+        "state": state_token,
+        "scope": "openid profile email",
+    }
+    url = "https://www.linkedin.com/oauth/v2/authorization?" + urllib.parse.urlencode(query)
+    return RedirectResponse(url=url, status_code=302)
+
+
+@app.get("/auth/linkedin/callback")
+def linkedin_callback(request: Request, code: str = "", state: str = ""):
+    expected_state = request.session.get("linkedin_oauth_state")
+    if not expected_state or not state or not secrets.compare_digest(expected_state, state):
+        return _render_login(request, "LinkedIn login failed (state mismatch).")
+
+    try:
+        token_resp = requests.post(
+            "https://www.linkedin.com/oauth/v2/accessToken",
+            data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": LINKEDIN_REDIRECT_URI,
+                "client_id": LINKEDIN_CLIENT_ID,
+                "client_secret": LINKEDIN_CLIENT_SECRET,
+            },
+            timeout=20,
+        )
+        token_resp.raise_for_status()
+        access_token = token_resp.json().get("access_token")
+        if not access_token:
+            return _render_login(request, "LinkedIn login failed (missing access token).")
+
+        userinfo = requests.get(
+            "https://api.linkedin.com/v2/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=20,
+        )
+        userinfo.raise_for_status()
+        profile = userinfo.json()
+    except Exception:
+        return _render_login(request, "LinkedIn login failed during token/profile exchange.")
+
+    linkedin_sub = str(profile.get("sub") or profile.get("id") or "")
+    email = profile.get("email") or ""
+    if not linkedin_sub:
+        return _render_login(request, "LinkedIn login failed (missing profile id).")
+
+    state_db = store.load()
+    user = next((u for u in state_db.get("users", []) if u.get("linkedin_sub") == linkedin_sub), None)
+    if not user and email:
+        user = next((u for u in state_db.get("users", []) if u.get("email", "").lower() == email.lower()), None)
+
+    if not user:
+        user = {
+            "id": str(uuid.uuid4()),
+            "email": email or f"linkedin_{linkedin_sub}@local",
+            "password_hash": "",
+            "linkedin_sub": linkedin_sub,
+            "is_paid": False,
+            "plan": "free",
+            "preferred_locations": ["New York", "San Francisco"],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        state_db.setdefault("users", []).append(user)
+    else:
+        user["linkedin_sub"] = linkedin_sub
+
+    store.save(state_db)
+    request.session["user_id"] = user["id"]
+    request.session.pop("linkedin_oauth_state", None)
+    return RedirectResponse(url="/", status_code=303)
 
 
 @app.post("/register")
@@ -147,6 +245,7 @@ def register(
         "id": str(uuid.uuid4()),
         "email": email,
         "password_hash": ph.hash(password),
+        "linkedin_sub": "",
         "is_paid": False,
         "plan": "free",
         "preferred_locations": [x.strip() for x in preferred_locations.split(",") if x.strip()],
@@ -182,7 +281,6 @@ def login(request: Request, csrf_token: str = Form(...), email: str = Form(...),
         except VerifyMismatchError:
             ok = False
     elif user.get("password") == password:
-        # legacy migration path
         user["password_hash"] = ph.hash(password)
         user.pop("password", None)
         ok = True

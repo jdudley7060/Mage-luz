@@ -14,11 +14,16 @@
 
     <section>
       <h2>Login</h2>
+      {% if linkedin_ready %}
+      <p><a href="/auth/linkedin/start"><button type="button">Continue with LinkedIn</button></a></p>
+      {% else %}
+      <p style="color:#e9c07f">LinkedIn OAuth not configured yet (set env vars).</p>
+      {% endif %}
       <form action="/login" method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <input type="email" name="email" placeholder="Email" required />
         <input type="password" name="password" placeholder="Password" required />
-        <button type="submit">Login</button>
+        <button type="submit">Login with Email</button>
       </form>
     </section>
 

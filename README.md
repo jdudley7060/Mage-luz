@@ -22,6 +22,17 @@ Security hardening pass included:
 
 ## Run
 
+Set env vars (recommended):
+
+```bash
+export SESSION_SECRET='change-me-long-random'
+export COOKIE_SECURE=false   # true in HTTPS prod
+# LinkedIn OAuth (optional for local email fallback; required for LinkedIn sign-in)
+export LINKEDIN_CLIENT_ID='...'
+export LINKEDIN_CLIENT_SECRET='...'
+export LINKEDIN_REDIRECT_URI='http://localhost:8787/auth/linkedin/callback'
+```
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
