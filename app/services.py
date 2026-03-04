@@ -219,7 +219,11 @@ def _similarity(a: str, b: str) -> float:
 
 
 def rank_jobs(
-    resume: dict[str, Any], jobs: list[dict[str, Any]], companies: list[dict[str, Any]], preferred_locations: list[str] | None = None
+    resume: dict[str, Any],
+    jobs: list[dict[str, Any]],
+    companies: list[dict[str, Any]],
+    preferred_locations: list[str] | None = None,
+    preferred_industries: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     profile = resume.get("role_profile", {})
     keywords = [k.lower() for k in profile.get("keywords", [])]
@@ -227,10 +231,15 @@ def rank_jobs(
     lane_titles = [t.lower() for lane in top_lanes for t in lane.get("titles", [])]
 
     pref = [p.lower() for p in (preferred_locations or [])]
+    industry_pref = [i.lower() for i in (preferred_industries or [])]
     resume_text = resume.get("parsed_text", "")
 
     matches = []
     for j in jobs:
+        title_raw = (j.get("title") or "").strip()
+        if not title_raw or title_raw.lower() in {"none", "language", "careers", "applications"}:
+            continue
+
         text = f"{j.get('title', '')} {j.get('description', '')}".lower()
         location_text = (j.get("location", "") or "").lower()
 
@@ -240,18 +249,20 @@ def rank_jobs(
         tier_weight = TIER_WEIGHT.get(j.get("tier", "B"), 60)
         location_fit = 90 if any(p in location_text for p in pref) or "remote" in location_text else 60
         link_quality = 85 if (j.get("apply_url") or "").startswith("http") else 50
+        industry_fit = 80 if (industry_pref and any(i in text for i in industry_pref)) else (65 if not industry_pref else 45)
 
         final_score = round(
-            0.33 * role_fit
-            + 0.25 * skill_overlap
-            + 0.22 * semantic_fit
+            0.30 * role_fit
+            + 0.22 * skill_overlap
+            + 0.20 * semantic_fit
             + 0.10 * tier_weight
-            + 0.05 * location_fit
+            + 0.08 * location_fit
+            + 0.05 * industry_fit
             + 0.05 * link_quality,
             2,
         )
 
-        if final_score < 56:
+        if final_score < 48:
             continue
 
         matches.append(

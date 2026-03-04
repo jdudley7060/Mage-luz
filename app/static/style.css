@@ -14,6 +14,7 @@ h1{margin:0;font-size:38px;letter-spacing:-.8px}h2{margin:0 0 10px 0}h3{margin:0
 button{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#081124;border:none;border-radius:10px;padding:10px 12px;font-weight:700;cursor:pointer}
 button.ghost{background:#16284b;color:#d6e5ff;border:1px solid #35518f}
 input{background:#0f1a33;color:var(--text);border:1px solid #2b4278;border-radius:10px;padding:10px}
+.checks{display:flex;gap:10px;flex-wrap:wrap}.checks label{font-size:13px;color:#cfe0ff}
 .variant{margin-top:10px;background:#0d1730;border:1px dashed #365395;padding:10px;border-radius:10px}
 pre{white-space:pre-wrap;color:#dce8ff}
 .exports{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}

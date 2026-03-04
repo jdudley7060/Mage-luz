@@ -26,7 +26,14 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <label>1) Location preferences</label>
         <input type="text" name="preferred_locations" value="{{ user.preferred_locations|join(', ') }}" placeholder="New York, San Francisco, Remote" required />
-        <input type="text" name="target_companies" placeholder="Optional target companies (comma-separated)" />
+        <label>Industry focus</label>
+        <div class="checks">
+          <label><input type="checkbox" name="preferred_industries" value="fintech" checked> Fintech</label>
+          <label><input type="checkbox" name="preferred_industries" value="saas" checked> SaaS</label>
+          <label><input type="checkbox" name="preferred_industries" value="ai"> AI</label>
+          <label><input type="checkbox" name="preferred_industries" value="healthcare"> Healthcare</label>
+          <label><input type="checkbox" name="preferred_industries" value="consumer"> Consumer</label>
+        </div>
         <label>2) Upload resume</label>
         <input type="file" name="file" accept=".pdf,.doc,.docx,.txt" required />
         <button type="submit">Find my best-fit roles</button>
@@ -51,9 +58,20 @@
       <form action="/start" method="post" enctype="multipart/form-data" class="stack">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <input type="text" name="preferred_locations" value="{{ user.preferred_locations|join(', ') }}" placeholder="New York, San Francisco, Remote" required />
-        <input type="text" name="target_companies" placeholder="Optional target companies (comma-separated)" />
+        <label>Industry focus</label>
+        <div class="checks">
+          <label><input type="checkbox" name="preferred_industries" value="fintech" checked> Fintech</label>
+          <label><input type="checkbox" name="preferred_industries" value="saas" checked> SaaS</label>
+          <label><input type="checkbox" name="preferred_industries" value="ai"> AI</label>
+          <label><input type="checkbox" name="preferred_industries" value="healthcare"> Healthcare</label>
+          <label><input type="checkbox" name="preferred_industries" value="consumer"> Consumer</label>
+        </div>
         <input type="file" name="file" accept=".pdf,.doc,.docx,.txt" required />
         <button type="submit">Refresh matches from new resume</button>
+      </form>
+      <form action="/rerun" method="post" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button type="submit" class="ghost">Run again with saved resume</button>
       </form>
     </section>
 

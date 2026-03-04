@@ -226,6 +226,7 @@ def linkedin_callback(request: Request, code: str = "", state: str = ""):
             "is_paid": False,
             "plan": "free",
             "preferred_locations": ["New York", "San Francisco"],
+            "preferred_industries": ["fintech", "saas"],
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         db.setdefault("users", []).append(user)
@@ -251,6 +252,7 @@ def register(request: Request, csrf_token: str = Form(...), email: str = Form(..
         "is_paid": False,
         "plan": "free",
         "preferred_locations": ["New York", "San Francisco"],
+        "preferred_industries": ["fintech", "saas"],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     db.setdefault("users", []).append(user)
@@ -325,7 +327,13 @@ def home(request: Request):
 
 
 @app.post("/start")
-async def start_flow(request: Request, csrf_token: str = Form(...), preferred_locations: str = Form(...), target_companies: str = Form(""), file: UploadFile = File(...)):
+async def start_flow(
+    request: Request,
+    csrf_token: str = Form(...),
+    preferred_locations: str = Form(...),
+    preferred_industries: list[str] = Form(default=[]),
+    file: UploadFile = File(...),
+):
     if not _check_csrf(request, csrf_token):
         return RedirectResponse(url="/", status_code=303)
 
@@ -335,6 +343,7 @@ async def start_flow(request: Request, csrf_token: str = Form(...), preferred_lo
         return redirect
 
     user["preferred_locations"] = [x.strip() for x in preferred_locations.split(",") if x.strip()]
+    user["preferred_industries"] = preferred_industries or user.get("preferred_industries", []) or ["fintech", "saas"]
 
     file_bytes = await file.read()
     resume_id = str(uuid.uuid4())
@@ -357,7 +366,6 @@ async def start_flow(request: Request, csrf_token: str = Form(...), preferred_lo
     db["matches"] = [m for m in db.get("matches", []) if m.get("user_id") != user["id"]]
     db["variants"] = [v for v in db.get("variants", []) if v.get("user_id") != user["id"]]
 
-    request.session["target_companies"] = target_companies or ""
     request.session["latest_resume_id"] = resume_id
     store.save(db)
     return RedirectResponse(url="/roles", status_code=303)
@@ -395,14 +403,19 @@ def roles_select(request: Request, csrf_token: str = Form(...), selected_role: s
     if not resume:
         return RedirectResponse(url="/", status_code=303)
 
-    selected = [c.strip() for c in (request.session.get("target_companies") or "").split(",") if c.strip()]
-    companies = elite_companies(selected)
+    companies = elite_companies()
     db_jobs = db.get("jobs_cache") or db.get("jobs") or []
     if not db_jobs:
         _ensure_jobs_cache_async()
     allowed = {c["name"].lower() for c in companies}
     jobs = [j for j in db_jobs if (j.get("company_name","").lower() in allowed)]
-    matches = rank_jobs(resume, jobs, companies, user.get("preferred_locations", []))
+    matches = rank_jobs(
+        resume,
+        jobs,
+        companies,
+        user.get("preferred_locations", []),
+        user.get("preferred_industries", []),
+    )
 
     selected_low = selected_role.lower().strip()
     filtered = [m for m in matches if selected_low in (m.get("title", "").lower() + " " + m.get("company_name", "").lower())]
@@ -417,6 +430,44 @@ def roles_select(request: Request, csrf_token: str = Form(...), selected_role: s
     return RedirectResponse(url="/", status_code=303)
 
 
+@app.post("/rerun")
+def rerun_search(request: Request, csrf_token: str = Form(...), selected_role: str = Form("")):
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse(url="/", status_code=303)
+    db = store.load()
+    user, redirect = _require_user(request, db)
+    if redirect:
+        return redirect
+
+    resume = next((r for r in db.get("resumes", []) if r.get("user_id") == user["id"]), None)
+    if not resume:
+        return RedirectResponse(url="/", status_code=303)
+
+    companies = elite_companies()
+    db_jobs = db.get("jobs_cache") or db.get("jobs") or []
+    allowed = {c["name"].lower() for c in companies}
+    jobs = [j for j in db_jobs if (j.get("company_name", "").lower() in allowed)]
+
+    matches = rank_jobs(
+        resume,
+        jobs,
+        companies,
+        user.get("preferred_locations", []),
+        user.get("preferred_industries", []),
+    )
+
+    if selected_role.strip():
+        r = selected_role.lower().strip()
+        filtered = [m for m in matches if r in (m.get("title", "").lower() + " " + m.get("company_name", "").lower())]
+        matches = filtered if filtered else matches
+
+    for m in matches:
+        m["user_id"] = user["id"]
+
+    db["jobs"] = jobs
+    db["matches"] = [m for m in db.get("matches", []) if m.get("user_id") != user["id"]] + matches
+    store.save(db)
+    return RedirectResponse(url="/", status_code=303)
 
 
 @app.post("/jobs/refresh")
