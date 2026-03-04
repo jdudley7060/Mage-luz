@@ -3,9 +3,15 @@ from __future__ import annotations
 import re
 import uuid
 from datetime import datetime, timezone
+from difflib import SequenceMatcher
 from typing import Any
 
 import requests
+
+try:
+    from scrapling import Fetcher
+except Exception:  # pragma: no cover
+    Fetcher = None
 
 COMPANIES = {
     "S+": ["Anthropic", "OpenAI", "Google DeepMind", "Rentech", "TGS", "xAI", "Citadel Securities", "Jane Street", "HRT"],
@@ -13,11 +19,6 @@ COMPANIES = {
     "S-": ["IMC", "SIG", "DRW", "Akuna"],
     "A++": ["Databricks", "Netflix", "Anduril", "Google", "Meta", "Sierra AI", "Roblox"],
     "A+": ["Snowflake", "Waymo", "Stripe", "LinkedIn", "Figma", "Plaid", "Uber", "Airbnb", "Block (Cash App)", "Ramp", "Coinbase", "Nvidia", "AWS (Annapurna)", "Meta (Ads, M10N, MRS)", "Palantir", "Decagon"],
-    "A": ["Notion", "Block (Square)", "Apple", "Doordash", "Datadog", "Robinhood", "MongoDB", "Google (GCP)", "Tesla", "Harvey", "Meta (Reality Labs)", "Pinterest"],
-    "A-": ["Snap", "AWS", "Dropbox", "Google (YouTube)", "Rippling", "Upstart", "Vercel", "Cloudflare", "Crowdstrike", "Affirm", "Reddit", "Verkada", "Rubrik", "Lyft", "Instacart", "Twilio", "Okta", "Riot Games", "Circle", "TTD", "Pure Storage", "SoFi"],
-    "B+": ["TikTok", "Discord", "Amazon", "Microsoft", "Bloomberg", "AMD", "Adobe", "Atlassian", "Docusign", "Box", "Intuit", "Hubspot"],
-    "B": ["Duolingo", "Asana", "Spotify", "Epic Games", "Etsy", "Twitch", "AppLovin", "Paypal", "Workday"],
-    "B-": ["Oracle", "Zoom", "IBM", "Salesforce", "c1", "eBay", "Shopify"],
 }
 
 TIER_WEIGHT = {"S+": 100, "S": 95, "S-": 90, "A++": 85, "A+": 80, "A": 75, "A-": 70, "B+": 65, "B": 60, "B-": 55}
@@ -56,18 +57,6 @@ ROLE_LANES: dict[str, dict[str, list[str]]] = {
         "titles": ["Software Engineer", "Backend Engineer", "Full Stack Engineer", "Solutions Engineer"],
         "required_any": ["software engineer", "engineer", "developer", "computer science", "full stack", "backend"],
     },
-    "data_analytics_ml": {
-        "keywords": ["sql", "tableau", "power bi", "analytics", "machine learning", "model", "statistics", "data science"],
-        "titles": ["Data Analyst", "Business Intelligence Analyst", "Data Scientist", "ML Engineer"],
-    },
-    "marketing_growth": {
-        "keywords": ["marketing", "campaign", "acquisition", "brand", "content", "seo", "paid social"],
-        "titles": ["Growth Marketing", "Product Marketing", "Marketing Strategy"],
-    },
-    "accounting": {
-        "keywords": ["accounting", "gaap", "audit", "bookkeeping", "reconciliation", "controller"],
-        "titles": ["Accountant", "Senior Accountant", "Accounting Manager"],
-    },
 }
 
 
@@ -79,9 +68,15 @@ def load_companies() -> list[dict[str, Any]]:
     return out
 
 
-def elite_companies() -> list[dict[str, Any]]:
+def elite_companies(selected_names: list[str] | None = None) -> list[dict[str, Any]]:
+    all_companies = load_companies()
+    if selected_names:
+        wanted = {x.strip().lower() for x in selected_names if x.strip()}
+        filtered = [c for c in all_companies if c["name"].lower() in wanted]
+        if filtered:
+            return filtered
     tiers = ["S+", "S", "S-", "A++", "A+"]
-    return [c for c in load_companies() if c["tier"] in tiers]
+    return [c for c in all_companies if c["tier"] in tiers]
 
 
 def infer_roles(resume_text: str) -> dict[str, Any]:
@@ -104,7 +99,7 @@ def infer_roles(resume_text: str) -> dict[str, Any]:
         ]
 
     tokens = re.findall(r"[a-zA-Z][a-zA-Z+.#-]{2,}", text)
-    keywords = sorted({t.lower() for t in tokens if len(t) > 3})[:80]
+    keywords = sorted({t.lower() for t in tokens if len(t) > 3})[:120]
 
     return {"top_lanes": top_lanes, "keywords": keywords}
 
@@ -116,7 +111,7 @@ def _fetch_greenhouse(token: str) -> list[dict[str, Any]]:
         r.raise_for_status()
         payload = r.json()
         out = []
-        for j in payload.get("jobs", [])[:50]:
+        for j in payload.get("jobs", [])[:80]:
             out.append(
                 {
                     "id": str(uuid.uuid4()),
@@ -133,30 +128,94 @@ def _fetch_greenhouse(token: str) -> list[dict[str, Any]]:
         return []
 
 
+def _guess_career_urls(company_name: str) -> list[str]:
+    slug = re.sub(r"[^a-z0-9]+", "-", company_name.lower()).strip("-")
+    base = slug.replace("-inc", "").replace("-corp", "")
+    return [
+        f"https://jobs.{base}.com",
+        f"https://careers.{base}.com",
+        f"https://{base}.com/careers",
+        f"https://www.{base}.com/careers",
+        f"https://{base}.com/jobs",
+        f"https://www.{base}.com/jobs",
+    ]
+
+
+def _scrape_job_links_with_scrapling(company_name: str, role_profile: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    if Fetcher is None:
+        return []
+
+    role_titles = [t.lower() for lane in (role_profile or {}).get("top_lanes", []) for t in lane.get("titles", [])]
+    fetcher = Fetcher()
+    links: list[dict[str, Any]] = []
+    seen = set()
+
+    for url in _guess_career_urls(company_name)[:4]:
+        try:
+            resp = fetcher.get(url, timeout=10)
+            if getattr(resp, "status", 0) >= 400:
+                continue
+            for a in resp.css("a")[:500]:
+                href = (a.attrib.get("href") or "").strip()
+                txt = (a.text or "").strip()
+                if not href:
+                    continue
+                full = href if href.startswith("http") else requests.compat.urljoin(url, href)
+                low = f"{txt} {full}".lower()
+                if not any(k in low for k in ["job", "career", "position", "opening", "apply", "greenhouse", "lever", "ashby"]):
+                    continue
+                if role_titles and not any(rt.lower() in low for rt in role_titles[:8]):
+                    # keep some generic software/ops jobs anyway
+                    if not any(x in low for x in ["engineer", "operations", "strategy", "product", "finance", "analyst"]):
+                        continue
+                key = full.split("?")[0]
+                if key in seen:
+                    continue
+                seen.add(key)
+                links.append(
+                    {
+                        "id": str(uuid.uuid4()),
+                        "external_job_id": key,
+                        "title": txt[:180] if txt else "Role",
+                        "location": "Unknown",
+                        "description": "",
+                        "apply_url": full,
+                        "posted_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
+        except Exception:
+            continue
+    return links[:60]
+
+
 def ingest_jobs_for_companies(companies: list[dict[str, Any]], role_profile: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     jobs: list[dict[str, Any]] = []
     top_lanes = (role_profile or {}).get("top_lanes", [])
+    title_signals = [t.lower() for lane in top_lanes for t in lane.get("titles", [])]
 
-    for c in companies[:30]:
+    for c in companies[:40]:
         cname = c["name"]
         token = GREENHOUSE_TOKENS.get(cname)
-        fetched = _fetch_greenhouse(token) if token else []
 
-        # live jobs only (no google-search placeholders)
+        fetched = _fetch_greenhouse(token) if token else []
         if not fetched:
-            continue
+            fetched = _scrape_job_links_with_scrapling(cname, role_profile)
 
         if top_lanes and fetched:
-            title_signals = [t.lower() for lane in top_lanes for t in lane.get("titles", [])]
-            filtered = [j for j in fetched if any(sig in j.get("title", "").lower() for sig in title_signals)]
-            fetched = filtered[:12] if filtered else []
+            filtered = [j for j in fetched if any(sig in (j.get("title", "").lower()) for sig in title_signals)]
+            fetched = filtered[:15] if filtered else fetched[:10]
 
         for job in fetched:
             job["company_id"] = c["id"]
             job["company_name"] = cname
             job["tier"] = c["tier"]
         jobs.extend(fetched)
+
     return jobs
+
+
+def _similarity(a: str, b: str) -> float:
+    return SequenceMatcher(None, a[:3000].lower(), b[:3000].lower()).ratio()
 
 
 def rank_jobs(
@@ -168,54 +227,42 @@ def rank_jobs(
     lane_titles = [t.lower() for lane in top_lanes for t in lane.get("titles", [])]
 
     pref = [p.lower() for p in (preferred_locations or [])]
+    resume_text = resume.get("parsed_text", "")
 
     matches = []
     for j in jobs:
         text = f"{j.get('title', '')} {j.get('description', '')}".lower()
         location_text = (j.get("location", "") or "").lower()
 
-        skill_overlap = min(100, sum(1 for k in keywords[:35] if k in text) * 4)
-        role_fit = 90 if any(t.lower() in text for t in lane_titles[:6]) else 45
-        seniority_fit = 75
+        skill_overlap = min(100, sum(1 for k in keywords[:70] if k in text) * 2)
+        role_fit = 92 if any(t in text for t in lane_titles[:10]) else 52
+        semantic_fit = round(_similarity(resume_text, text) * 100, 2)
         tier_weight = TIER_WEIGHT.get(j.get("tier", "B"), 60)
-        location_fit = 90 if any(p in location_text for p in pref) or "remote" in location_text else 55
-        recency = 80
-        domain = 75
-
-        if role_fit < 50:
-            continue
+        location_fit = 90 if any(p in location_text for p in pref) or "remote" in location_text else 60
+        link_quality = 85 if (j.get("apply_url") or "").startswith("http") else 50
 
         final_score = round(
-            0.40 * role_fit
-            + 0.20 * skill_overlap
-            + 0.10 * seniority_fit
+            0.33 * role_fit
+            + 0.25 * skill_overlap
+            + 0.22 * semantic_fit
             + 0.10 * tier_weight
-            + 0.10 * location_fit
-            + 0.05 * recency
-            + 0.05 * domain,
+            + 0.05 * location_fit
+            + 0.05 * link_quality,
             2,
         )
 
-        reasons = []
-        if skill_overlap > 45:
-            reasons.append("HIGH_SKILL_MATCH")
-        if role_fit >= 80:
-            reasons.append("ROLE_LANE_MATCH")
-        if tier_weight >= 85:
-            reasons.append("ELITE_COMPANY")
-        if location_fit >= 85:
-            reasons.append("LOCATION_MATCH")
+        if final_score < 56:
+            continue
 
         matches.append(
             {
                 "id": str(uuid.uuid4()),
                 "job_id": j["id"],
                 "company_name": j.get("company_name"),
-                "title": j.get("title"),
-                "location": j.get("location"),
+                "title": j.get("title") or "Role",
+                "location": j.get("location") or "Unknown",
                 "apply_url": j.get("apply_url", ""),
                 "final_score": final_score,
-                "reason_codes": reasons,
                 "status": "recommended",
             }
         )
@@ -226,11 +273,11 @@ def rank_jobs(
 def tailor_resume(resume: dict[str, Any], job: dict[str, Any], match: dict[str, Any]) -> dict[str, Any]:
     top_keywords = resume.get("role_profile", {}).get("keywords", [])[:12]
     bullets = [
-        f"Targeted this resume for {job.get('title')} at {job.get('company_name')} with emphasis on {', '.join(top_keywords[:5]) or 'analytical execution'}.",
+        f"Tailored this resume for {job.get('title')} at {job.get('company_name')} emphasizing {', '.join(top_keywords[:5]) or 'analytical execution' }.",
         "Converted prior experience into impact-oriented bullet points with measurable outcomes.",
         "Aligned language to role responsibilities and cross-functional execution expectations.",
     ]
-    summary = f"Tailored for {job.get('title')} @ {job.get('company_name')} | match score: {match.get('final_score')}"
+    summary = f"Tailored for {job.get('title')} @ {job.get('company_name')}"
     return {
         "id": str(uuid.uuid4()),
         "job_id": job["id"],

@@ -26,6 +26,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <label>1) Location preferences</label>
         <input type="text" name="preferred_locations" value="{{ user.preferred_locations|join(', ') }}" placeholder="New York, San Francisco, Remote" required />
+        <input type="text" name="target_companies" placeholder="Optional target companies (comma-separated)" />
         <label>2) Upload resume</label>
         <input type="file" name="file" accept=".pdf,.doc,.docx,.txt" required />
         <button type="submit">Find my best-fit roles</button>
@@ -50,6 +51,7 @@
       <form action="/start" method="post" enctype="multipart/form-data" class="stack">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <input type="text" name="preferred_locations" value="{{ user.preferred_locations|join(', ') }}" placeholder="New York, San Francisco, Remote" required />
+        <input type="text" name="target_companies" placeholder="Optional target companies (comma-separated)" />
         <input type="file" name="file" accept=".pdf,.doc,.docx,.txt" required />
         <button type="submit">Refresh matches from new resume</button>
       </form>
@@ -60,14 +62,10 @@
       <article class="job">
         <div class="job-top">
           <h3>{{ m.title }}</h3>
-          <span class="score">{{ m.final_score }}</span>
         </div>
         <div class="meta">{{ m.company_name }} · {{ m.location }}</div>
-        <div class="chips">
-          {% for r in m.reason_codes %}<span>{{ r }}</span>{% endfor %}
-        </div>
         <div class="actions">
-          {% if m.apply_url %}<a href="{{ m.apply_url }}" target="_blank">Role link</a>{% endif %}
+          {% if m.apply_url %}<a href="{{ m.apply_url }}" target="_blank">View job</a>{% endif %}
           <form action="/tailor/{{ m.id }}" method="post">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
             <button type="submit">Generate tailored resume</button>

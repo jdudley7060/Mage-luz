@@ -279,7 +279,7 @@ def home(request: Request):
 
 
 @app.post("/start")
-async def start_flow(request: Request, csrf_token: str = Form(...), preferred_locations: str = Form(...), file: UploadFile = File(...)):
+async def start_flow(request: Request, csrf_token: str = Form(...), preferred_locations: str = Form(...), target_companies: str = Form(""), file: UploadFile = File(...)):
     if not _check_csrf(request, csrf_token):
         return RedirectResponse(url="/", status_code=303)
 
@@ -308,16 +308,61 @@ async def start_flow(request: Request, csrf_token: str = Form(...), preferred_lo
         "role_profile": role_profile,
     }
     db["resumes"] = [r for r in db.get("resumes", []) if r.get("user_id") != user["id"]] + [resume]
+    db["matches"] = [m for m in db.get("matches", []) if m.get("user_id") != user["id"]]
+    db["variants"] = [v for v in db.get("variants", []) if v.get("user_id") != user["id"]]
 
-    companies = elite_companies()
-    jobs = ingest_jobs_for_companies(companies, role_profile)
+    request.session["target_companies"] = target_companies or ""
+    request.session["latest_resume_id"] = resume_id
+    store.save(db)
+    return RedirectResponse(url="/roles", status_code=303)
+
+
+@app.get("/roles", response_class=HTMLResponse)
+def roles_pick(request: Request):
+    db = store.load()
+    user, redirect = _require_user(request, db)
+    if redirect:
+        return redirect
+    resume = next((r for r in db.get("resumes", []) if r.get("user_id") == user["id"]), None)
+    if not resume:
+        return RedirectResponse(url="/", status_code=303)
+    role_titles=[]
+    for lane in resume.get("role_profile", {}).get("top_lanes", []):
+        for t in lane.get("titles", []):
+            if t not in role_titles:
+                role_titles.append(t)
+    if not role_titles:
+        role_titles=["Software Engineer","Business Operations","Product Strategy"]
+    return templates.TemplateResponse("roles.html", {"request": request, "user": user, "roles": role_titles, "csrf_token": _csrf_token(request)})
+
+
+@app.post("/roles/select")
+def roles_select(request: Request, csrf_token: str = Form(...), selected_role: str = Form(...)):
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse(url="/roles", status_code=303)
+    db = store.load()
+    user, redirect = _require_user(request, db)
+    if redirect:
+        return redirect
+
+    resume = next((r for r in db.get("resumes", []) if r.get("user_id") == user["id"]), None)
+    if not resume:
+        return RedirectResponse(url="/", status_code=303)
+
+    selected = [c.strip() for c in (request.session.get("target_companies") or "").split(",") if c.strip()]
+    companies = elite_companies(selected)
+    jobs = ingest_jobs_for_companies(companies, resume.get("role_profile", {}))
     matches = rank_jobs(resume, jobs, companies, user.get("preferred_locations", []))
-    for m in matches:
+
+    selected_low = selected_role.lower().strip()
+    filtered = [m for m in matches if selected_low in (m.get("title", "").lower() + " " + m.get("company_name", "").lower())]
+    final_matches = filtered if filtered else matches
+
+    for m in final_matches:
         m["user_id"] = user["id"]
 
     db["jobs"] = jobs
-    db["matches"] = [m for m in db.get("matches", []) if m.get("user_id") != user["id"]] + matches
-    db["variants"] = [v for v in db.get("variants", []) if v.get("user_id") != user["id"]]
+    db["matches"] = [m for m in db.get("matches", []) if m.get("user_id") != user["id"]] + final_matches
     store.save(db)
     return RedirectResponse(url="/", status_code=303)
 
