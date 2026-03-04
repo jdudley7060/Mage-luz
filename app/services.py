@@ -284,33 +284,58 @@ def rank_jobs(
     return sorted(matches, key=lambda x: x["final_score"], reverse=True)
 
 
+def _split_resume_sections(resume_text: str) -> dict[str, list[str]]:
+    sections: dict[str, list[str]] = {"GENERAL": []}
+    current = "GENERAL"
+    for raw in resume_text.split("\n"):
+        line = raw.strip()
+        if not line:
+            continue
+        if line.isupper() and len(line) < 45:
+            current = line
+            sections.setdefault(current, [])
+            continue
+        sections.setdefault(current, []).append(line)
+    return sections
+
+
 def tailor_resume(resume: dict[str, Any], job: dict[str, Any], match: dict[str, Any]) -> dict[str, Any]:
     top_keywords = resume.get("role_profile", {}).get("keywords", [])[:12]
     resume_text = resume.get("parsed_text", "")
+    sections = _split_resume_sections(resume_text)
 
-    lines = [ln.strip() for ln in resume_text.split("\n") if ln.strip()]
-    wins = [ln for ln in lines if ("$" in ln or "mm" in ln.lower() or "%" in ln or "underw" in ln.lower() or "portfolio" in ln.lower())]
-    wins = wins[:4] or lines[:4]
+    exp_lines = sections.get("PROFESSIONAL EXPERIENCE", []) or sections.get("GENERAL", [])
+    wins = [ln for ln in exp_lines if ("$" in ln or "mm" in ln.lower() or "%" in ln or "underw" in ln.lower() or "portfolio" in ln.lower())]
+    wins = wins[:5] or exp_lines[:5]
 
     bullets = [
-        f"Repositioned experience for {job.get('title')} at {job.get('company_name')} with direct emphasis on {', '.join(top_keywords[:5]) or 'strategy, operations, and analytics'}.",
-        *[f"Rewrote impact point: {w[:180]}" for w in wins[:3]],
-        "Matched resume language to role requirements and responsibilities from the job description.",
+        f"Repositioned experience for {job.get('title')} at {job.get('company_name')} with emphasis on {', '.join(top_keywords[:5]) or 'strategy, operations, and analytics'}.",
+        *[f"{w[:190]}" for w in wins[:3]],
+        "Language aligned to the role requirements and business outcomes in the posting.",
     ]
 
     summary = f"Tailored for {job.get('title')} @ {job.get('company_name')}"
+
+    education_block = "\n".join(sections.get("EDUCATION", [])[:8])
+    skills_block = "\n".join((sections.get("SKILLS & INTERESTS", []) or sections.get("SKILLS", []))[:12])
+    experience_block = "\n".join([f"- {b}" for b in bullets])
+
     rewritten_resume_text = "\n".join(
         [
             f"TARGET ROLE: {job.get('title')} ({job.get('company_name')})",
+            f"ROLE LINK: {job.get('apply_url', '')}",
             "",
-            "PROFESSIONAL SUMMARY (REWRITTEN):",
-            f"Analytical operator with finance/strategy execution experience, tailored for {job.get('title')}. Background includes underwriting, portfolio management, cross-functional delivery, and data-driven decision support.",
+            "PROFESSIONAL SUMMARY",
+            f"Analytical operator with strong finance/strategy and execution background, tailored for {job.get('title')}. Experience includes underwriting, portfolio management, cross-functional execution, and data-backed decision-making.",
             "",
-            "TAILORED HIGHLIGHTS:",
-            *[f"- {b}" for b in bullets],
+            "PROFESSIONAL EXPERIENCE (TAILORED)",
+            experience_block,
             "",
-            "ORIGINAL RESUME (REFERENCE):",
-            resume_text[:8000],
+            "EDUCATION",
+            education_block or "(pulled from original resume)",
+            "",
+            "SKILLS",
+            skills_block or ", ".join(top_keywords[:10]),
         ]
     )
 
