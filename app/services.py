@@ -99,7 +99,10 @@ def infer_roles(resume_text: str) -> dict[str, Any]:
         ]
 
     tokens = re.findall(r"[a-zA-Z][a-zA-Z+.#-]{2,}", text)
-    keywords = sorted({t.lower() for t in tokens if len(t) > 3})[:120]
+    stop = {
+        "about","across","with","from","this","that","their","through","using","over","into","under","and","the","for","your","have","will","were","been","where","when","while","into","none"
+    }
+    keywords = sorted({t.lower() for t in tokens if len(t) > 3 and t.lower() not in stop})[:120]
 
     return {"top_lanes": top_lanes, "keywords": keywords}
 
@@ -283,12 +286,34 @@ def rank_jobs(
 
 def tailor_resume(resume: dict[str, Any], job: dict[str, Any], match: dict[str, Any]) -> dict[str, Any]:
     top_keywords = resume.get("role_profile", {}).get("keywords", [])[:12]
+    resume_text = resume.get("parsed_text", "")
+
+    lines = [ln.strip() for ln in resume_text.split("\n") if ln.strip()]
+    wins = [ln for ln in lines if ("$" in ln or "mm" in ln.lower() or "%" in ln or "underw" in ln.lower() or "portfolio" in ln.lower())]
+    wins = wins[:4] or lines[:4]
+
     bullets = [
-        f"Tailored this resume for {job.get('title')} at {job.get('company_name')} emphasizing {', '.join(top_keywords[:5]) or 'analytical execution' }.",
-        "Converted prior experience into impact-oriented bullet points with measurable outcomes.",
-        "Aligned language to role responsibilities and cross-functional execution expectations.",
+        f"Repositioned experience for {job.get('title')} at {job.get('company_name')} with direct emphasis on {', '.join(top_keywords[:5]) or 'strategy, operations, and analytics'}.",
+        *[f"Rewrote impact point: {w[:180]}" for w in wins[:3]],
+        "Matched resume language to role requirements and responsibilities from the job description.",
     ]
+
     summary = f"Tailored for {job.get('title')} @ {job.get('company_name')}"
+    rewritten_resume_text = "\n".join(
+        [
+            f"TARGET ROLE: {job.get('title')} ({job.get('company_name')})",
+            "",
+            "PROFESSIONAL SUMMARY (REWRITTEN):",
+            f"Analytical operator with finance/strategy execution experience, tailored for {job.get('title')}. Background includes underwriting, portfolio management, cross-functional delivery, and data-driven decision support.",
+            "",
+            "TAILORED HIGHLIGHTS:",
+            *[f"- {b}" for b in bullets],
+            "",
+            "ORIGINAL RESUME (REFERENCE):",
+            resume_text[:8000],
+        ]
+    )
+
     return {
         "id": str(uuid.uuid4()),
         "job_id": job["id"],
@@ -298,4 +323,5 @@ def tailor_resume(resume: dict[str, Any], job: dict[str, Any], match: dict[str, 
         "apply_url": job.get("apply_url", ""),
         "summary": summary,
         "variant_text": "\n".join(["- " + b for b in bullets]),
+        "rewritten_resume_text": rewritten_resume_text,
     }

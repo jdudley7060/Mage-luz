@@ -537,7 +537,7 @@ def export_variant(request: Request, variant_id: str, fmt: str):
         doc.add_heading("Tailored Resume Pack", level=1)
         doc.add_paragraph(variant.get("summary", ""))
         doc.add_paragraph(f"Role link: {variant.get('apply_url', '')}")
-        doc.add_paragraph(variant.get("variant_text", ""))
+        doc.add_paragraph(variant.get("rewritten_resume_text", variant.get("variant_text", "")))
         doc.save(str(p))
         return FileResponse(str(p), filename=p.name)
 
@@ -549,7 +549,7 @@ def export_variant(request: Request, variant_id: str, fmt: str):
         c.drawString(50, y, "Tailored Resume Pack")
         y -= 28
         c.setFont("Helvetica", 11)
-        for line in [variant.get("summary", ""), f"Role link: {variant.get('apply_url', '')}", "", variant.get("variant_text", "")]:
+        for line in [variant.get("summary", ""), f"Role link: {variant.get('apply_url', '')}", "", variant.get("rewritten_resume_text", variant.get("variant_text", ""))]:
             for seg in str(line).split("\n"):
                 c.drawString(50, y, seg[:110])
                 y -= 16
