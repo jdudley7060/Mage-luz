@@ -3,37 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login — Mage-Luz MVP</title>
+  <title>Login — Mage-Luz</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <main>
-    <h1>Mage-Luz MVP</h1>
-    <p>Login required. Resume + preferences + recommendations are user-gated.</p>
-    {% if error %}<p style="color:#ff9090">{{ error }}</p>{% endif %}
+  <main class="wrap auth">
+    <h1>Mage-Luz</h1>
+    <p class="muted">Find the right roles fast. Tailor your resume in one click.</p>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
-    <section>
-      <h2>Login</h2>
+    <section class="card">
+      <h2>Sign in</h2>
       {% if linkedin_ready %}
-      <p><a href="/auth/linkedin/start"><button type="button">Continue with LinkedIn</button></a></p>
+      <p><a class="btn" href="/auth/linkedin/start">Continue with LinkedIn</a></p>
       {% else %}
-      <p style="color:#e9c07f">LinkedIn OAuth not configured yet (set env vars).</p>
+      <p class="muted">LinkedIn OAuth not configured yet. Use email for now.</p>
       {% endif %}
-      <form action="/login" method="post">
+      <form action="/login" method="post" class="stack">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <input type="email" name="email" placeholder="Email" required />
         <input type="password" name="password" placeholder="Password" required />
-        <button type="submit">Login with Email</button>
+        <button type="submit">Login</button>
       </form>
     </section>
 
-    <section>
-      <h2>Register</h2>
-      <form action="/register" method="post">
+    <section class="card">
+      <h2>Create account</h2>
+      <form action="/register" method="post" class="stack">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <input type="email" name="email" placeholder="Email" required />
         <input type="password" name="password" placeholder="Password" required />
-        <input type="text" name="preferred_locations" value="New York, San Francisco" />
         <button type="submit">Create account</button>
       </form>
     </section>

@@ -3,140 +3,82 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mage-Luz MVP</title>
+  <title>Mage-Luz — Seamless Mode</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <main>
-    <h1>Mage-Luz MVP</h1>
-    <p>Upload resume → infer role fit → ingest jobs → rank → tailor top matches → track status.</p>
-
-    <section>
-      <div class="row">
-        <div>
-          <strong>{{ user.email }}</strong> · plan: <strong>{{ user.plan }}</strong>
-          <div>Preferred locations: {{ user.preferred_locations|join(', ') }}</div>
-        </div>
-        <form action="/logout" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}" /><button type="submit">Logout</button></form>
+  <main class="wrap">
+    <header class="hero">
+      <div>
+        <h1>Mage-Luz</h1>
+        <p>Elite roles. Resume-fit matching. One smooth flow.</p>
       </div>
-      <form action="/update-preferences" method="post" class="inline-form">
+      <form action="/logout" method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <input type="text" name="preferred_locations" value="{{ user.preferred_locations|join(', ') }}" />
-        <button type="submit">Update location prefs</button>
+        <button class="ghost" type="submit">Logout</button>
       </form>
+    </header>
+
+    {% if not has_data %}
+    <section class="card">
+      <h2>Start in 20 seconds</h2>
+      <form action="/start" method="post" enctype="multipart/form-data" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <label>1) Location preferences</label>
+        <input type="text" name="preferred_locations" value="{{ user.preferred_locations|join(', ') }}" placeholder="New York, San Francisco, Remote" required />
+        <label>2) Upload resume</label>
+        <input type="file" name="file" accept=".pdf,.doc,.docx,.txt" required />
+        <button type="submit">Find my best-fit roles</button>
+      </form>
+      <small>No company picker. We auto-rank from your elite-company list.</small>
+    </section>
+    {% else %}
+    <section class="card mini">
+      <div><strong>{{ user.email }}</strong> · {{ user.plan }}</div>
+      <div class="muted">Locations: {{ user.preferred_locations|join(', ') }}</div>
+      {% if locked_count > 0 and not user.is_paid %}
+        <div class="paybar">Top 3 unlocked · {{ locked_count }} locked</div>
+        <form action="/mock-upgrade" method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <button type="submit">Unlock all — $7.99/mo</button>
+        </form>
+      {% endif %}
     </section>
 
-    {% if locked_count > 0 and not user.is_paid %}
-    <section class="paywall">
-      <h2>🔒 Free plan limit reached</h2>
-      <p>You can view top 3 jobs. {{ locked_count }} more are behind the Pro plan at <strong>$7.99/month</strong>.</p>
-      <form action="/mock-upgrade" method="post">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <button type="submit">Unlock Pro (MVP test button)</button>
-      </form>
+    <section class="grid">
+      {% for m in matches %}
+      <article class="job">
+        <div class="job-top">
+          <h3>{{ m.title }}</h3>
+          <span class="score">{{ m.final_score }}</span>
+        </div>
+        <div class="meta">{{ m.company_name }} · {{ m.location }}</div>
+        <div class="chips">
+          {% for r in m.reason_codes %}<span>{{ r }}</span>{% endfor %}
+        </div>
+        <div class="actions">
+          {% if m.apply_url %}<a href="{{ m.apply_url }}" target="_blank">Role link</a>{% endif %}
+          <form action="/tailor/{{ m.id }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <button type="submit">Generate tailored resume</button>
+          </form>
+        </div>
+
+        {% set v = (variants | selectattr('job_id','equalto',m.job_id) | list | first) %}
+        {% if v %}
+        <div class="variant">
+          <p>{{ v.summary }}</p>
+          <pre>{{ v.variant_text }}</pre>
+          <div class="exports">
+            <a href="/export/{{ v.id }}.docx">Download DOCX</a>
+            <a href="/export/{{ v.id }}.pdf">Download PDF</a>
+          </div>
+        </div>
+        {% endif %}
+      </article>
+      {% endfor %}
     </section>
     {% endif %}
-
-    <section>
-      <h2>1) Seed companies/tiers</h2>
-      <form action="/seed-companies" method="post">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <button type="submit">Seed from tier list</button>
-      </form>
-      <p>{{ companies|length }} companies loaded.</p>
-    </section>
-
-    <section>
-      <h2>2) Upload resume (PDF/DOCX/TXT)</h2>
-      <form action="/upload-resume" method="post" enctype="multipart/form-data">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <input type="file" name="file" required />
-        <button type="submit">Upload + Parse + Infer Roles</button>
-      </form>
-      <ul>
-      {% for r in resumes %}
-        <li><strong>{{ r.file_name }}</strong> — roles: {{ r.role_profile.top_roles }}</li>
-      {% endfor %}
-      </ul>
-    </section>
-
-    <section>
-      <h2>3) Ingest jobs (pick companies)</h2>
-      <form action="/ingest-jobs" method="post">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <div class="companies">
-        {% for c in companies %}
-          <label><input type="checkbox" name="company_ids" value="{{ c.id }}"> {{ c.name }} ({{ c.tier }})</label>
-        {% endfor %}
-        </div>
-        <button type="submit">Ingest jobs</button>
-      </form>
-      <p>{{ jobs|length }} jobs currently loaded.</p>
-    </section>
-
-    <section>
-      <h2>4) Run matching</h2>
-      <form action="/run-matching" method="post">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <select name="resume_id" required>
-          {% for r in resumes %}
-          <option value="{{ r.id }}">{{ r.file_name }}</option>
-          {% endfor %}
-        </select>
-        <button type="submit">Rank jobs</button>
-      </form>
-    </section>
-
-    <section>
-      <h2>Top matches {% if not user.is_paid %}(top 3 on free){% endif %}</h2>
-      <table>
-        <tr><th>Company</th><th>Role</th><th>Score</th><th>Reasons</th><th>Status</th><th>Track</th></tr>
-        {% for m in matches[:20] %}
-        <tr>
-          <td>{{ m.company_name }}</td>
-          <td>{{ m.title }}</td>
-          <td>{{ m.final_score }}</td>
-          <td>{{ m.reason_codes|join(', ') }}</td>
-          <td>{{ m.status }}</td>
-          <td>
-            <form action="/track-event" method="post">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-              <input type="hidden" name="match_id" value="{{ m.id }}" />
-              <select name="event_type">
-                <option value="saved">saved</option>
-                <option value="applied">applied</option>
-                <option value="interview">interview</option>
-                <option value="rejected">rejected</option>
-              </select>
-              <button type="submit">Update</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </table>
-    </section>
-
-    <section>
-      <h2>5) Tailor top matches</h2>
-      <form action="/tailor-top" method="post">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <select name="resume_id" required>
-          {% for r in resumes %}
-          <option value="{{ r.id }}">{{ r.file_name }}</option>
-          {% endfor %}
-        </select>
-        <input type="number" min="1" max="10" value="3" name="top_n" />
-        <button type="submit">Generate tailored bullets</button>
-      </form>
-      <ul>
-      {% for v in variants %}
-        <li>
-          <strong>{{ v.company_name }} — {{ v.job_title }} ({{ v.score }})</strong>
-          <pre>{{ v.variant_text }}</pre>
-        </li>
-      {% endfor %}
-      </ul>
-    </section>
   </main>
 </body>
 </html>

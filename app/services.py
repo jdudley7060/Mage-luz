@@ -35,6 +35,37 @@ GREENHOUSE_TOKENS = {
     "Duolingo": "duolingo",
 }
 
+ROLE_LANES: dict[str, dict[str, list[str]]] = {
+    "strategic_finance": {
+        "keywords": ["finance", "model", "cash flow", "credit", "lending", "portfolio", "underwriting", "debt", "valuation", "fp&a"],
+        "titles": ["Strategic Finance", "Finance & Strategy", "Corporate Finance", "FP&A", "Investment Associate"],
+    },
+    "bizops_strategy_ops": {
+        "keywords": ["operations", "strategy", "cross-functional", "process", "execution", "kpi", "go-to-market", "gtm"],
+        "titles": ["BizOps", "Strategy & Operations", "Business Operations", "Chief of Staff", "Revenue Operations"],
+    },
+    "product_strategy_gtm": {
+        "keywords": ["product", "roadmap", "stakeholder", "launch", "market research", "customer", "pricing", "growth"],
+        "titles": ["Product Strategy", "GTM Strategy", "Product Operations", "Product Manager"],
+    },
+    "software_engineering": {
+        "keywords": ["python", "typescript", "react", "backend", "api", "distributed", "kubernetes", "software", "developer"],
+        "titles": ["Software Engineer", "Backend Engineer", "Full Stack Engineer", "Solutions Engineer"],
+    },
+    "data_analytics_ml": {
+        "keywords": ["sql", "tableau", "power bi", "analytics", "machine learning", "model", "statistics", "data science"],
+        "titles": ["Data Analyst", "Business Intelligence Analyst", "Data Scientist", "ML Engineer"],
+    },
+    "marketing_growth": {
+        "keywords": ["marketing", "campaign", "acquisition", "brand", "content", "seo", "paid social"],
+        "titles": ["Growth Marketing", "Product Marketing", "Marketing Strategy"],
+    },
+    "accounting": {
+        "keywords": ["accounting", "gaap", "audit", "bookkeeping", "reconciliation", "controller"],
+        "titles": ["Accountant", "Senior Accountant", "Accounting Manager"],
+    },
+}
+
 
 def load_companies() -> list[dict[str, Any]]:
     out = []
@@ -44,29 +75,30 @@ def load_companies() -> list[dict[str, Any]]:
     return out
 
 
+def elite_companies() -> list[dict[str, Any]]:
+    tiers = ["S+", "S", "S-", "A++", "A+"]
+    return [c for c in load_companies() if c["tier"] in tiers]
+
+
 def infer_roles(resume_text: str) -> dict[str, Any]:
     text = (resume_text or "").lower()
-    role_keywords = {
-        "software_engineering": ["python", "typescript", "react", "backend", "api", "distributed", "kubernetes"],
-        "data_science_ml": ["machine learning", "pytorch", "tensorflow", "model", "nlp", "llm", "statistics"],
-        "product_management": ["roadmap", "stakeholder", "launch", "kpi", "product strategy", "requirements"],
-        "finance_quant": ["trading", "alpha", "risk", "portfolio", "quant", "pricing", "derivatives"],
-        "operations_strategy": ["operations", "process", "vendor", "efficiency", "strategy", "execution"],
-    }
+    lane_scores: dict[str, int] = {}
+    for lane, spec in ROLE_LANES.items():
+        lane_scores[lane] = sum(1 for kw in spec["keywords"] if kw in text)
 
-    scores = {}
-    for role, kws in role_keywords.items():
-        scores[role] = sum(1 for k in kws if k in text)
+    ranked = sorted(lane_scores.items(), key=lambda x: x[1], reverse=True)
+    top_lanes = [{"lane": lane, "score": score, "titles": ROLE_LANES[lane]["titles"]} for lane, score in ranked[:4] if score > 0]
 
-    ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    top = [{"role": r, "score": s} for r, s in ranked[:3] if s > 0]
-    if not top:
-        top = [{"role": "software_engineering", "score": 1}, {"role": "product_management", "score": 1}]
+    if not top_lanes:
+        top_lanes = [
+            {"lane": "software_engineering", "score": 1, "titles": ROLE_LANES["software_engineering"]["titles"]},
+            {"lane": "bizops_strategy_ops", "score": 1, "titles": ROLE_LANES["bizops_strategy_ops"]["titles"]},
+        ]
 
     tokens = re.findall(r"[a-zA-Z][a-zA-Z+.#-]{2,}", text)
-    keywords = [t for t in tokens if len(t) > 3][:50]
+    keywords = sorted({t.lower() for t in tokens if len(t) > 3})[:80]
 
-    return {"top_roles": top, "keywords": sorted(set(keywords))[:40]}
+    return {"top_lanes": top_lanes, "keywords": keywords}
 
 
 def _fetch_greenhouse(token: str) -> list[dict[str, Any]]:
@@ -76,7 +108,7 @@ def _fetch_greenhouse(token: str) -> list[dict[str, Any]]:
         r.raise_for_status()
         payload = r.json()
         out = []
-        for j in payload.get("jobs", [])[:40]:
+        for j in payload.get("jobs", [])[:50]:
             out.append(
                 {
                     "id": str(uuid.uuid4()),
@@ -93,33 +125,42 @@ def _fetch_greenhouse(token: str) -> list[dict[str, Any]]:
         return []
 
 
-def ingest_jobs_for_companies(companies: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _mock_jobs_for_lanes(company_name: str, top_lanes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    lane_list = top_lanes[:3] or [{"lane": "bizops_strategy_ops", "titles": ["Strategy & Operations"]}]
+    for idx, lane in enumerate(lane_list, start=1):
+        title = lane["titles"][0]
+        out.append(
+            {
+                "id": str(uuid.uuid4()),
+                "external_job_id": f"mock-{idx}",
+                "title": f"{title}",
+                "location": "New York, NY / San Francisco, CA / Remote",
+                "description": f"{company_name} is hiring for {title}. Strong execution, analytical thinking, and cross-functional collaboration required.",
+                "apply_url": f"https://www.google.com/search?q={company_name.replace(' ', '+')}+careers+{title.replace(' ', '+')}",
+                "posted_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+    return out
+
+
+def ingest_jobs_for_companies(companies: list[dict[str, Any]], role_profile: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     jobs: list[dict[str, Any]] = []
-    for c in companies:
+    top_lanes = (role_profile or {}).get("top_lanes", [])
+
+    for c in companies[:30]:
         cname = c["name"]
         token = GREENHOUSE_TOKENS.get(cname)
         fetched = _fetch_greenhouse(token) if token else []
+
+        # keep live jobs only if they match likely lanes; otherwise use lane-aware mocks for relevance
+        if top_lanes and fetched:
+            title_signals = [t.lower() for lane in top_lanes for t in lane.get("titles", [])]
+            filtered = [j for j in fetched if any(sig.split()[0] in j.get("title", "").lower() for sig in title_signals)]
+            fetched = filtered[:10] if filtered else []
+
         if not fetched:
-            fetched = [
-                {
-                    "id": str(uuid.uuid4()),
-                    "external_job_id": "mock-1",
-                    "title": f"{cname} — Software Engineer",
-                    "location": "San Francisco, CA",
-                    "description": "Build product features, ship production code, collaborate across teams.",
-                    "apply_url": "",
-                    "posted_at": datetime.now(timezone.utc).isoformat(),
-                },
-                {
-                    "id": str(uuid.uuid4()),
-                    "external_job_id": "mock-2",
-                    "title": f"{cname} — Product Manager",
-                    "location": "Remote (US)",
-                    "description": "Own roadmap, drive launches, define success metrics.",
-                    "apply_url": "",
-                    "posted_at": datetime.now(timezone.utc).isoformat(),
-                },
-            ]
+            fetched = _mock_jobs_for_lanes(cname, top_lanes)
 
         for job in fetched:
             job["company_id"] = c["id"]
@@ -134,24 +175,24 @@ def rank_jobs(
 ) -> list[dict[str, Any]]:
     profile = resume.get("role_profile", {})
     keywords = [k.lower() for k in profile.get("keywords", [])]
-    top_roles = [r["role"] for r in profile.get("top_roles", [])]
+    top_lanes = profile.get("top_lanes", [])
+    lane_titles = [t.lower() for lane in top_lanes for t in lane.get("titles", [])]
 
     pref = [p.lower() for p in (preferred_locations or [])]
 
     matches = []
     for j in jobs:
-        text = f"{j.get('title','')} {j.get('description','')}".lower()
+        text = f"{j.get('title', '')} {j.get('description', '')}".lower()
         location_text = (j.get("location", "") or "").lower()
-        skill_overlap = min(100, sum(1 for k in keywords[:25] if k in text) * 5)
-        role_fit = 80 if any(r.split("_")[0] in text for r in top_roles) else 55
-        seniority_fit = 70
+
+        skill_overlap = min(100, sum(1 for k in keywords[:35] if k in text) * 4)
+        role_fit = 90 if any(t.split()[0] in text for t in lane_titles) else 50
+        seniority_fit = 75
         tier_weight = TIER_WEIGHT.get(j.get("tier", "B"), 60)
-        if any(p in location_text for p in pref) or "remote" in location_text:
-            location_fit = 90
-        else:
-            location_fit = 55
+        location_fit = 90 if any(p in location_text for p in pref) or "remote" in location_text else 55
         recency = 80
-        domain = 70
+        domain = 75
+
         final_score = round(
             0.35 * role_fit
             + 0.20 * skill_overlap
@@ -162,13 +203,16 @@ def rank_jobs(
             + 0.05 * domain,
             2,
         )
+
         reasons = []
-        if skill_overlap > 55:
+        if skill_overlap > 45:
             reasons.append("HIGH_SKILL_MATCH")
-        if role_fit >= 75:
-            reasons.append("STRONG_ROLE_SIMILARITY")
+        if role_fit >= 80:
+            reasons.append("ROLE_LANE_MATCH")
         if tier_weight >= 85:
-            reasons.append("TOP_TIER_TARGET")
+            reasons.append("ELITE_COMPANY")
+        if location_fit >= 85:
+            reasons.append("LOCATION_MATCH")
 
         matches.append(
             {
@@ -177,14 +221,8 @@ def rank_jobs(
                 "company_name": j.get("company_name"),
                 "title": j.get("title"),
                 "location": j.get("location"),
+                "apply_url": j.get("apply_url", ""),
                 "final_score": final_score,
-                "role_fit": role_fit,
-                "skill_overlap": skill_overlap,
-                "seniority_fit": seniority_fit,
-                "tier_weight": tier_weight,
-                "location_fit": location_fit,
-                "recency_score": recency,
-                "domain_fit": domain,
                 "reason_codes": reasons,
                 "status": "recommended",
             }
@@ -194,17 +232,20 @@ def rank_jobs(
 
 
 def tailor_resume(resume: dict[str, Any], job: dict[str, Any], match: dict[str, Any]) -> dict[str, Any]:
-    top_keywords = resume.get("role_profile", {}).get("keywords", [])[:8]
+    top_keywords = resume.get("role_profile", {}).get("keywords", [])[:12]
     bullets = [
-        f"Aligned experience to {job.get('title')} requirements with focus on: {', '.join(top_keywords[:4]) or 'core delivery'}.",
-        "Quantified impact in prior roles using outcome metrics and execution speed.",
-        f"Highlighted domain fit for {job.get('company_name')} and cross-functional collaboration.",
+        f"Targeted this resume for {job.get('title')} at {job.get('company_name')} with emphasis on {', '.join(top_keywords[:5]) or 'analytical execution'}.",
+        "Converted prior experience into impact-oriented bullet points with measurable outcomes.",
+        "Aligned language to role responsibilities and cross-functional execution expectations.",
     ]
+    summary = f"Tailored for {job.get('title')} @ {job.get('company_name')} | match score: {match.get('final_score')}"
     return {
         "id": str(uuid.uuid4()),
         "job_id": job["id"],
         "job_title": job.get("title"),
         "company_name": job.get("company_name"),
         "score": match.get("final_score"),
+        "apply_url": job.get("apply_url", ""),
+        "summary": summary,
         "variant_text": "\n".join(["- " + b for b in bullets]),
     }
