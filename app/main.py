@@ -226,7 +226,7 @@ def linkedin_callback(request: Request, code: str = "", state: str = ""):
             "is_paid": False,
             "plan": "free",
             "preferred_locations": ["New York", "San Francisco"],
-            "preferred_industries": ["fintech", "saas"],
+            "preferred_industries": [],
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         db.setdefault("users", []).append(user)
@@ -252,7 +252,7 @@ def register(request: Request, csrf_token: str = Form(...), email: str = Form(..
         "is_paid": False,
         "plan": "free",
         "preferred_locations": ["New York", "San Francisco"],
-        "preferred_industries": ["fintech", "saas"],
+        "preferred_industries": [],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     db.setdefault("users", []).append(user)
@@ -343,7 +343,8 @@ async def start_flow(
         return redirect
 
     user["preferred_locations"] = [x.strip() for x in preferred_locations.split(",") if x.strip()]
-    user["preferred_industries"] = preferred_industries or user.get("preferred_industries", []) or ["fintech", "saas"]
+    all_industries = ["fintech", "saas", "ai", "healthcare", "consumer"]
+    user["preferred_industries"] = preferred_industries if preferred_industries else all_industries
 
     file_bytes = await file.read()
     resume_id = str(uuid.uuid4())
