@@ -58,6 +58,12 @@
     </section>
 
     <section class="grid">
+      {% if not matches %}
+      <article class="job">
+        <h3>No best-fit jobs found yet</h3>
+        <div class="meta">Try "Run another search" with the same resume, or broaden location prefs (add Remote).</div>
+      </article>
+      {% endif %}
       {% for m in matches %}
       <article class="job">
         <div class="job-top">

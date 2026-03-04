@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import threading
 import os
 import re
 import secrets
@@ -22,7 +23,7 @@ from reportlab.lib.pagesizes import LETTER
 from reportlab.pdfgen import canvas
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.services import elite_companies, infer_roles, ingest_jobs_for_companies, rank_jobs, tailor_resume
+from app.services import elite_companies, infer_roles, ingest_jobs_for_companies, rank_jobs, tailor_resume, load_companies
 from app.storage import DataStore
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,6 +45,50 @@ app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, same_site="lax"
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "app" / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 store = DataStore(BASE_DIR / "data" / "db.json")
+
+JOBS_CACHE_TTL_SECONDS = 24 * 60 * 60
+
+
+def _jobs_cache_fresh(state: dict) -> bool:
+    ts = state.get("jobs_cache_updated_at")
+    if not ts:
+        return False
+    try:
+        last = datetime.fromisoformat(ts)
+    except Exception:
+        return False
+    return (datetime.now(timezone.utc) - last).total_seconds() < JOBS_CACHE_TTL_SECONDS
+
+
+def _refresh_jobs_cache_full() -> None:
+    db = store.load()
+    companies = load_companies()
+    jobs = ingest_jobs_for_companies(companies, role_profile=None, use_scrape=True, max_companies=len(companies))
+    db["jobs_cache"] = jobs
+    db["jobs_cache_updated_at"] = datetime.now(timezone.utc).isoformat()
+    # keep app compatibility
+    db["jobs"] = jobs
+    store.save(db)
+
+
+def _ensure_jobs_cache_async() -> None:
+    db = store.load()
+    if _jobs_cache_fresh(db) and db.get("jobs_cache"):
+        return
+    if db.get("jobs_cache_refreshing"):
+        return
+    db["jobs_cache_refreshing"] = True
+    store.save(db)
+
+    def _run():
+        try:
+            _refresh_jobs_cache_full()
+        finally:
+            d2 = store.load()
+            d2["jobs_cache_refreshing"] = False
+            store.save(d2)
+
+    threading.Thread(target=_run, daemon=True).start()
 
 
 def _extract_text(file_name: str, data: bytes) -> str:
@@ -258,6 +303,7 @@ def home(request: Request):
     if redirect:
         return redirect
 
+    _ensure_jobs_cache_async()
     resumes = [r for r in db.get("resumes", []) if r.get("user_id") == user["id"]]
     matches = [m for m in db.get("matches", []) if m.get("user_id") == user["id"]]
     variants = [v for v in db.get("variants", []) if v.get("user_id") == user["id"]]
@@ -268,7 +314,7 @@ def home(request: Request):
         {
             "request": request,
             "user": user,
-            "has_data": bool(matches),
+            "has_data": bool(resumes),
             "resumes": resumes,
             "matches": visible,
             "locked_count": max(0, len(matches) - len(visible)),
@@ -351,9 +397,11 @@ def roles_select(request: Request, csrf_token: str = Form(...), selected_role: s
 
     selected = [c.strip() for c in (request.session.get("target_companies") or "").split(",") if c.strip()]
     companies = elite_companies(selected)
-    # If no explicit company list was provided, keep this fast: greenhouse-first only (no broad scrape).
-    use_scrape = bool(selected)
-    jobs = ingest_jobs_for_companies(companies, resume.get("role_profile", {}), use_scrape=use_scrape, max_companies=12 if not selected else 20)
+    db_jobs = db.get("jobs_cache") or db.get("jobs") or []
+    if not db_jobs:
+        _ensure_jobs_cache_async()
+    allowed = {c["name"].lower() for c in companies}
+    jobs = [j for j in db_jobs if (j.get("company_name","").lower() in allowed)]
     matches = rank_jobs(resume, jobs, companies, user.get("preferred_locations", []))
 
     selected_low = selected_role.lower().strip()
@@ -366,6 +414,16 @@ def roles_select(request: Request, csrf_token: str = Form(...), selected_role: s
     db["jobs"] = jobs
     db["matches"] = [m for m in db.get("matches", []) if m.get("user_id") != user["id"]] + final_matches
     store.save(db)
+    return RedirectResponse(url="/", status_code=303)
+
+
+
+
+@app.post("/jobs/refresh")
+def refresh_jobs(request: Request, csrf_token: str = Form(...)):
+    if not _check_csrf(request, csrf_token):
+        return RedirectResponse(url="/", status_code=303)
+    _ensure_jobs_cache_async()
     return RedirectResponse(url="/", status_code=303)
 
 
