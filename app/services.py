@@ -186,17 +186,20 @@ def rank_jobs(
         location_text = (j.get("location", "") or "").lower()
 
         skill_overlap = min(100, sum(1 for k in keywords[:35] if k in text) * 4)
-        role_fit = 90 if any(t.split()[0] in text for t in lane_titles) else 50
+        role_fit = 90 if any(t.lower() in text for t in lane_titles[:6]) else 45
         seniority_fit = 75
         tier_weight = TIER_WEIGHT.get(j.get("tier", "B"), 60)
         location_fit = 90 if any(p in location_text for p in pref) or "remote" in location_text else 55
         recency = 80
         domain = 75
 
+        if role_fit < 50:
+            continue
+
         final_score = round(
-            0.35 * role_fit
+            0.40 * role_fit
             + 0.20 * skill_overlap
-            + 0.15 * seniority_fit
+            + 0.10 * seniority_fit
             + 0.10 * tier_weight
             + 0.10 * location_fit
             + 0.05 * recency

@@ -45,6 +45,16 @@
       {% endif %}
     </section>
 
+    <section class="card">
+      <h2>Run another search</h2>
+      <form action="/start" method="post" enctype="multipart/form-data" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <input type="text" name="preferred_locations" value="{{ user.preferred_locations|join(', ') }}" placeholder="New York, San Francisco, Remote" required />
+        <input type="file" name="file" accept=".pdf,.doc,.docx,.txt" required />
+        <button type="submit">Refresh matches from new resume</button>
+      </form>
+    </section>
+
     <section class="grid">
       {% for m in matches %}
       <article class="job">
