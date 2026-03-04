@@ -39,18 +39,22 @@ ROLE_LANES: dict[str, dict[str, list[str]]] = {
     "strategic_finance": {
         "keywords": ["finance", "model", "cash flow", "credit", "lending", "portfolio", "underwriting", "debt", "valuation", "fp&a"],
         "titles": ["Strategic Finance", "Finance & Strategy", "Corporate Finance", "FP&A", "Investment Associate"],
+        "required_any": ["finance", "credit", "underwriting", "lending", "investment", "portfolio"],
     },
     "bizops_strategy_ops": {
         "keywords": ["operations", "strategy", "cross-functional", "process", "execution", "kpi", "go-to-market", "gtm"],
         "titles": ["BizOps", "Strategy & Operations", "Business Operations", "Chief of Staff", "Revenue Operations"],
+        "required_any": ["operations", "strategy", "portfolio", "cross-functional", "execution"],
     },
     "product_strategy_gtm": {
         "keywords": ["product", "roadmap", "stakeholder", "launch", "market research", "customer", "pricing", "growth"],
         "titles": ["Product Strategy", "GTM Strategy", "Product Operations", "Product Manager"],
+        "required_any": ["product", "gtm", "roadmap", "launch", "market"],
     },
     "software_engineering": {
         "keywords": ["python", "typescript", "react", "backend", "api", "distributed", "kubernetes", "software", "developer"],
         "titles": ["Software Engineer", "Backend Engineer", "Full Stack Engineer", "Solutions Engineer"],
+        "required_any": ["software engineer", "engineer", "developer", "computer science", "full stack", "backend"],
     },
     "data_analytics_ml": {
         "keywords": ["sql", "tableau", "power bi", "analytics", "machine learning", "model", "statistics", "data science"],
@@ -84,7 +88,11 @@ def infer_roles(resume_text: str) -> dict[str, Any]:
     text = (resume_text or "").lower()
     lane_scores: dict[str, int] = {}
     for lane, spec in ROLE_LANES.items():
-        lane_scores[lane] = sum(1 for kw in spec["keywords"] if kw in text)
+        raw = sum(1 for kw in spec["keywords"] if kw in text)
+        required = spec.get("required_any", [])
+        if required and not any(r in text for r in required):
+            raw = 0
+        lane_scores[lane] = raw
 
     ranked = sorted(lane_scores.items(), key=lambda x: x[1], reverse=True)
     top_lanes = [{"lane": lane, "score": score, "titles": ROLE_LANES[lane]["titles"]} for lane, score in ranked[:4] if score > 0]
@@ -125,25 +133,6 @@ def _fetch_greenhouse(token: str) -> list[dict[str, Any]]:
         return []
 
 
-def _mock_jobs_for_lanes(company_name: str, top_lanes: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
-    lane_list = top_lanes[:3] or [{"lane": "bizops_strategy_ops", "titles": ["Strategy & Operations"]}]
-    for idx, lane in enumerate(lane_list, start=1):
-        title = lane["titles"][0]
-        out.append(
-            {
-                "id": str(uuid.uuid4()),
-                "external_job_id": f"mock-{idx}",
-                "title": f"{title}",
-                "location": "New York, NY / San Francisco, CA / Remote",
-                "description": f"{company_name} is hiring for {title}. Strong execution, analytical thinking, and cross-functional collaboration required.",
-                "apply_url": f"https://www.google.com/search?q={company_name.replace(' ', '+')}+careers+{title.replace(' ', '+')}",
-                "posted_at": datetime.now(timezone.utc).isoformat(),
-            }
-        )
-    return out
-
-
 def ingest_jobs_for_companies(companies: list[dict[str, Any]], role_profile: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     jobs: list[dict[str, Any]] = []
     top_lanes = (role_profile or {}).get("top_lanes", [])
@@ -153,14 +142,14 @@ def ingest_jobs_for_companies(companies: list[dict[str, Any]], role_profile: dic
         token = GREENHOUSE_TOKENS.get(cname)
         fetched = _fetch_greenhouse(token) if token else []
 
-        # keep live jobs only if they match likely lanes; otherwise use lane-aware mocks for relevance
+        # live jobs only (no google-search placeholders)
+        if not fetched:
+            continue
+
         if top_lanes and fetched:
             title_signals = [t.lower() for lane in top_lanes for t in lane.get("titles", [])]
-            filtered = [j for j in fetched if any(sig.split()[0] in j.get("title", "").lower() for sig in title_signals)]
-            fetched = filtered[:10] if filtered else []
-
-        if not fetched:
-            fetched = _mock_jobs_for_lanes(cname, top_lanes)
+            filtered = [j for j in fetched if any(sig in j.get("title", "").lower() for sig in title_signals)]
+            fetched = filtered[:12] if filtered else []
 
         for job in fetched:
             job["company_id"] = c["id"]
