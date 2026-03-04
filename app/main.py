@@ -16,14 +16,14 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from docx import Document
 from fastapi import FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from reportlab.lib.pagesizes import LETTER
 from reportlab.pdfgen import canvas
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.services import elite_companies, infer_roles, ingest_jobs_for_companies, rank_jobs, tailor_resume, load_companies
+from app.services import elite_companies, infer_roles, ingest_jobs_for_companies, rank_jobs, tailor_resume, load_companies, filter_jobs_by_industries
 from app.storage import DataStore
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -322,6 +322,9 @@ def home(request: Request):
             "locked_count": max(0, len(matches) - len(visible)),
             "variants": variants,
             "csrf_token": _csrf_token(request),
+            "jobs_cache_refreshing": bool(db.get("jobs_cache_refreshing")),
+            "jobs_cache_has_data": bool(db.get("jobs_cache") or db.get("jobs")),
+            "selected_role": user.get("selected_role", ""),
         },
     )
 
@@ -345,6 +348,7 @@ async def start_flow(
     user["preferred_locations"] = [x.strip() for x in preferred_locations.split(",") if x.strip()]
     all_industries = ["fintech", "saas", "ai", "healthcare", "consumer"]
     user["preferred_industries"] = preferred_industries if preferred_industries else all_industries
+    user["selected_role"] = user.get("selected_role", "")
 
     file_bytes = await file.read()
     resume_id = str(uuid.uuid4())
@@ -407,15 +411,20 @@ def roles_select(request: Request, csrf_token: str = Form(...), selected_role: s
     companies = elite_companies()
     db_jobs = db.get("jobs_cache") or db.get("jobs") or []
     if not db_jobs:
-        _ensure_jobs_cache_async()
+        # Non-blocking UX fallback: fetch immediately for this user path if cache is empty.
+        db_jobs = ingest_jobs_for_companies(companies, role_profile=resume.get("role_profile"), use_scrape=True, max_companies=len(companies))
+        db["jobs_cache"] = db_jobs
+        db["jobs_cache_updated_at"] = datetime.now(timezone.utc).isoformat()
     allowed = {c["name"].lower() for c in companies}
     jobs = [j for j in db_jobs if (j.get("company_name","").lower() in allowed)]
+    jobs = filter_jobs_by_industries(jobs, user.get("preferred_industries", []))
     matches = rank_jobs(
         resume,
         jobs,
         companies,
         user.get("preferred_locations", []),
         user.get("preferred_industries", []),
+        selected_role.strip(),
     )
 
     selected_low = selected_role.lower().strip()
@@ -425,6 +434,7 @@ def roles_select(request: Request, csrf_token: str = Form(...), selected_role: s
     for m in final_matches:
         m["user_id"] = user["id"]
 
+    user["selected_role"] = selected_role.strip()
     db["jobs"] = jobs
     db["matches"] = [m for m in db.get("matches", []) if m.get("user_id") != user["id"]] + final_matches
     store.save(db)
@@ -432,7 +442,13 @@ def roles_select(request: Request, csrf_token: str = Form(...), selected_role: s
 
 
 @app.post("/rerun")
-def rerun_search(request: Request, csrf_token: str = Form(...), selected_role: str = Form("")):
+def rerun_search(
+    request: Request,
+    csrf_token: str = Form(...),
+    preferred_locations: str = Form(""),
+    preferred_industries: list[str] = Form(default=[]),
+    selected_role: str = Form(""),
+):
     if not _check_csrf(request, csrf_token):
         return RedirectResponse(url="/", status_code=303)
     db = store.load()
@@ -444,10 +460,23 @@ def rerun_search(request: Request, csrf_token: str = Form(...), selected_role: s
     if not resume:
         return RedirectResponse(url="/", status_code=303)
 
+    if preferred_locations.strip():
+        user["preferred_locations"] = [x.strip() for x in preferred_locations.split(",") if x.strip()]
+    all_industries = ["fintech", "saas", "ai", "healthcare", "consumer"]
+    user["preferred_industries"] = preferred_industries if preferred_industries else all_industries
+    if selected_role.strip():
+        user["selected_role"] = selected_role.strip()
+
     companies = elite_companies()
     db_jobs = db.get("jobs_cache") or db.get("jobs") or []
+    if not db_jobs:
+        db_jobs = ingest_jobs_for_companies(companies, role_profile=resume.get("role_profile"), use_scrape=True, max_companies=len(companies))
+        db["jobs_cache"] = db_jobs
+        db["jobs_cache_updated_at"] = datetime.now(timezone.utc).isoformat()
     allowed = {c["name"].lower() for c in companies}
     jobs = [j for j in db_jobs if (j.get("company_name", "").lower() in allowed)]
+
+    jobs = filter_jobs_by_industries(jobs, user.get("preferred_industries", []))
 
     matches = rank_jobs(
         resume,
@@ -455,6 +484,7 @@ def rerun_search(request: Request, csrf_token: str = Form(...), selected_role: s
         companies,
         user.get("preferred_locations", []),
         user.get("preferred_industries", []),
+        user.get("selected_role", ""),
     )
 
     if selected_role.strip():
@@ -507,7 +537,8 @@ def tailor(request: Request, match_id: str, csrf_token: str = Form(...)):
     if not resume or not match:
         return RedirectResponse(url="/", status_code=303)
 
-    job = next((j for j in db.get("jobs", []) if j.get("id") == match.get("job_id")), None)
+    all_jobs = db.get("jobs", []) or db.get("jobs_cache", []) or []
+    job = next((j for j in all_jobs if j.get("id") == match.get("job_id")), None)
     if not job:
         return RedirectResponse(url="/", status_code=303)
 
@@ -531,32 +562,40 @@ def export_variant(request: Request, variant_id: str, fmt: str):
 
     safe_base = re.sub(r"[^a-zA-Z0-9_-]", "_", f"{variant['company_name']}_{variant['job_title']}_{variant_id[:8]}")
 
+    text_fallback = variant.get("rewritten_resume_text", variant.get("variant_text", ""))
+
     if fmt == "docx":
-        p = EXPORT_DIR / f"{safe_base}.docx"
-        doc = Document()
-        doc.add_heading("Tailored Resume Pack", level=1)
-        doc.add_paragraph(variant.get("summary", ""))
-        doc.add_paragraph(f"Role link: {variant.get('apply_url', '')}")
-        doc.add_paragraph(variant.get("rewritten_resume_text", variant.get("variant_text", "")))
-        doc.save(str(p))
-        return FileResponse(str(p), filename=p.name)
+        try:
+            p = EXPORT_DIR / f"{safe_base}.docx"
+            doc = Document()
+            doc.add_heading("Tailored Resume Pack", level=1)
+            doc.add_paragraph(variant.get("summary", ""))
+            doc.add_paragraph(f"Role link: {variant.get('apply_url', '')}")
+            doc.add_paragraph(text_fallback)
+            doc.save(str(p))
+            return FileResponse(str(p), filename=p.name)
+        except Exception:
+            return PlainTextResponse(text_fallback)
 
     if fmt == "pdf":
-        p = EXPORT_DIR / f"{safe_base}.pdf"
-        c = canvas.Canvas(str(p), pagesize=LETTER)
-        y = 760
-        c.setFont("Helvetica-Bold", 14)
-        c.drawString(50, y, "Tailored Resume Pack")
-        y -= 28
-        c.setFont("Helvetica", 11)
-        for line in [variant.get("summary", ""), f"Role link: {variant.get('apply_url', '')}", "", variant.get("rewritten_resume_text", variant.get("variant_text", ""))]:
-            for seg in str(line).split("\n"):
-                c.drawString(50, y, seg[:110])
-                y -= 16
-                if y < 60:
-                    c.showPage()
-                    y = 760
-        c.save()
-        return FileResponse(str(p), filename=p.name)
+        try:
+            p = EXPORT_DIR / f"{safe_base}.pdf"
+            c = canvas.Canvas(str(p), pagesize=LETTER)
+            y = 760
+            c.setFont("Helvetica-Bold", 14)
+            c.drawString(50, y, "Tailored Resume Pack")
+            y -= 28
+            c.setFont("Helvetica", 11)
+            for line in [variant.get("summary", ""), f"Role link: {variant.get('apply_url', '')}", "", text_fallback]:
+                for seg in str(line).split("\n"):
+                    c.drawString(50, y, seg[:110])
+                    y -= 16
+                    if y < 60:
+                        c.showPage()
+                        y = 760
+            c.save()
+            return FileResponse(str(p), filename=p.name)
+        except Exception:
+            return PlainTextResponse(text_fallback)
 
-    return RedirectResponse(url="/", status_code=303)
+    return PlainTextResponse(text_fallback)

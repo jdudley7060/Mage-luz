@@ -71,15 +71,29 @@
       </form>
       <form action="/rerun" method="post" class="stack">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <input type="text" name="preferred_locations" value="{{ user.preferred_locations|join(', ') }}" placeholder="New York, San Francisco, Remote" />
+        <div class="checks">
+          <label><input type="checkbox" name="preferred_industries" value="fintech"> Fintech</label>
+          <label><input type="checkbox" name="preferred_industries" value="saas"> SaaS</label>
+          <label><input type="checkbox" name="preferred_industries" value="ai"> AI</label>
+          <label><input type="checkbox" name="preferred_industries" value="healthcare"> Healthcare</label>
+          <label><input type="checkbox" name="preferred_industries" value="consumer"> Consumer</label>
+        </div>
+        <input type="text" name="selected_role" value="{{ selected_role or user.selected_role or '' }}" placeholder="Role keyword (e.g., Software Engineer)" />
         <button type="submit" class="ghost">Run again with saved resume</button>
       </form>
     </section>
 
     <section class="grid">
-      {% if not matches %}
+      {% if jobs_cache_refreshing and not jobs_cache_has_data %}
+      <article class="job">
+        <h3>Refreshing Top-30 jobs now…</h3>
+        <div class="meta">No action needed. Re-run with saved resume in ~20–40 seconds.</div>
+      </article>
+      {% elif not matches %}
       <article class="job">
         <h3>No best-fit jobs found yet</h3>
-        <div class="meta">Try "Run another search" with the same resume, or broaden location prefs (add Remote).</div>
+        <div class="meta">Try "Run again with saved resume" or broaden location prefs (add Remote).</div>
       </article>
       {% endif %}
       {% for m in matches %}
@@ -100,7 +114,7 @@
         {% if v %}
         <div class="variant">
           <p>{{ v.summary }}</p>
-          <pre>{{ v.variant_text }}</pre>
+          <pre>{{ v.rewritten_resume_text or v.variant_text }}</pre>
           <div class="exports">
             <a href="/export/{{ v.id }}.docx">Download DOCX</a>
             <a href="/export/{{ v.id }}.pdf">Download PDF</a>
