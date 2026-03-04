@@ -150,9 +150,9 @@ def _scrape_job_links_with_scrapling(company_name: str, role_profile: dict[str, 
     links: list[dict[str, Any]] = []
     seen = set()
 
-    for url in _guess_career_urls(company_name)[:4]:
+    for url in _guess_career_urls(company_name)[:2]:
         try:
-            resp = fetcher.get(url, timeout=10)
+            resp = fetcher.get(url, timeout=4)
             if getattr(resp, "status", 0) >= 400:
                 continue
             for a in resp.css("a")[:500]:
@@ -188,17 +188,17 @@ def _scrape_job_links_with_scrapling(company_name: str, role_profile: dict[str, 
     return links[:60]
 
 
-def ingest_jobs_for_companies(companies: list[dict[str, Any]], role_profile: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+def ingest_jobs_for_companies(companies: list[dict[str, Any]], role_profile: dict[str, Any] | None = None, use_scrape: bool = True, max_companies: int = 18) -> list[dict[str, Any]]:
     jobs: list[dict[str, Any]] = []
     top_lanes = (role_profile or {}).get("top_lanes", [])
     title_signals = [t.lower() for lane in top_lanes for t in lane.get("titles", [])]
 
-    for c in companies[:40]:
+    for c in companies[:max_companies]:
         cname = c["name"]
         token = GREENHOUSE_TOKENS.get(cname)
 
         fetched = _fetch_greenhouse(token) if token else []
-        if not fetched:
+        if not fetched and use_scrape:
             fetched = _scrape_job_links_with_scrapling(cname, role_profile)
 
         if top_lanes and fetched:

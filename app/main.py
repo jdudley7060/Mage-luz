@@ -351,7 +351,9 @@ def roles_select(request: Request, csrf_token: str = Form(...), selected_role: s
 
     selected = [c.strip() for c in (request.session.get("target_companies") or "").split(",") if c.strip()]
     companies = elite_companies(selected)
-    jobs = ingest_jobs_for_companies(companies, resume.get("role_profile", {}))
+    # If no explicit company list was provided, keep this fast: greenhouse-first only (no broad scrape).
+    use_scrape = bool(selected)
+    jobs = ingest_jobs_for_companies(companies, resume.get("role_profile", {}), use_scrape=use_scrape, max_companies=12 if not selected else 20)
     matches = rank_jobs(resume, jobs, companies, user.get("preferred_locations", []))
 
     selected_low = selected_role.lower().strip()
