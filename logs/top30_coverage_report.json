@@ -1,0 +1,247 @@
+{
+  "coverage": [
+    {
+      "company": "Anthropic",
+      "jobs_found": 9,
+      "valid_jobs": 9,
+      "status": "ok"
+    },
+    {
+      "company": "OpenAI",
+      "jobs_found": 6,
+      "valid_jobs": 6,
+      "status": "ok"
+    },
+    {
+      "company": "Google DeepMind",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "Rentech",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "TGS",
+      "jobs_found": 1,
+      "valid_jobs": 1,
+      "status": "ok"
+    },
+    {
+      "company": "xAI",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "Citadel Securities",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "Jane Street",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "HRT",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "Citadel",
+      "jobs_found": 16,
+      "valid_jobs": 16,
+      "status": "ok"
+    },
+    {
+      "company": "D.E. Shaw",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "Jump",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "Optiver",
+      "jobs_found": 12,
+      "valid_jobs": 12,
+      "status": "ok"
+    },
+    {
+      "company": "Two Sigma",
+      "jobs_found": 6,
+      "valid_jobs": 6,
+      "status": "ok"
+    },
+    {
+      "company": "Tesla (Autopilot)",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "Five Rings",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "SpaceX",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "IMC",
+      "jobs_found": 20,
+      "valid_jobs": 20,
+      "status": "ok"
+    },
+    {
+      "company": "SIG",
+      "jobs_found": 3,
+      "valid_jobs": 3,
+      "status": "ok"
+    },
+    {
+      "company": "DRW",
+      "jobs_found": 1,
+      "valid_jobs": 1,
+      "status": "ok"
+    },
+    {
+      "company": "Akuna",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "Databricks",
+      "jobs_found": 120,
+      "valid_jobs": 120,
+      "status": "ok"
+    },
+    {
+      "company": "Netflix",
+      "jobs_found": 3,
+      "valid_jobs": 3,
+      "status": "ok"
+    },
+    {
+      "company": "Anduril",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "Google",
+      "jobs_found": 10,
+      "valid_jobs": 10,
+      "status": "ok"
+    },
+    {
+      "company": "Meta",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "Sierra AI",
+      "jobs_found": 80,
+      "valid_jobs": 80,
+      "status": "ok"
+    },
+    {
+      "company": "Roblox",
+      "jobs_found": 120,
+      "valid_jobs": 120,
+      "status": "ok"
+    },
+    {
+      "company": "Snowflake",
+      "jobs_found": 0,
+      "valid_jobs": 0,
+      "status": "blocker"
+    },
+    {
+      "company": "Waymo",
+      "jobs_found": 7,
+      "valid_jobs": 7,
+      "status": "ok"
+    }
+  ],
+  "blockers": [
+    {
+      "company": "Google DeepMind",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "Rentech",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "xAI",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "Citadel Securities",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "Jane Street",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "HRT",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "D.E. Shaw",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "Jump",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "Tesla (Autopilot)",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "Five Rings",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "SpaceX",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "Akuna",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "Anduril",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "Meta",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    },
+    {
+      "company": "Snowflake",
+      "cause": "No parsable board discovered from Greenhouse token or careers scrape candidates."
+    }
+  ],
+  "total_jobs": 414
+}

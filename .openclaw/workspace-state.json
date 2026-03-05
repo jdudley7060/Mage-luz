@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "bootstrapSeededAt": "2026-03-03T14:15:07.360Z",
+  "lastRefreshedAt": "2026-03-04T16:26:21Z",
+  "project": "mage-luz",
+  "branch": "main",
+  "lastCommit": "571ac23",
+  "status": {
+    "flow": "login -> upload+location -> role pick -> matches -> tailor -> export",
+    "recentFixes": [
+      "Reapplied index/rerun industry checkbox fix",
+      "None-selected industries defaults to all",
+      "Resume persistence + rerun with saved resume"
+    ],
+    "knownBlockers": [
+      "Career URL normalization instability for some companies",
+      "Source fetch quality variance on JS-heavy career sites"
+    ],
+    "nextPriority": "Top-30 URL normalization hardening + coverage rerun"
+  }
+}

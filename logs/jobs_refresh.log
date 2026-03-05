@@ -1,0 +1,183 @@
+Traceback (most recent call last):
+  File "/Users/gurthang/.openclaw/workspace-mage-luz/tools/refresh_jobs_cache.py", line 1, in <module>
+    from app.main import _refresh_jobs_cache_full
+ModuleNotFoundError: No module named 'app'
+/Users/gurthang/.openclaw/workspace-mage-luz/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+[2026-03-03 20:20:08] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:12] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:15] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:19] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:22] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:25] INFO: Fetched (200) <GET https://careers.tgs.com> (referer: https://www.google.com/search?q=tgs)
+[2026-03-03 20:20:25] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:32] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:36] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:41] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:45] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:48] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:52] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:55] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:20:58] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:21:02] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:21:10] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:21:13] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:21:17] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:21:19] INFO: Fetched (308) <GET https://careers.imc.com> (referer: https://www.google.com/search?q=imc)
+[2026-03-03 20:21:19] INFO: Fetched (200) <GET https://www.imc.com/eu/search-careers> (referer: https://www.google.com/search?q=imc)
+[2026-03-03 20:21:19] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:21:23] INFO: Fetched (200) <GET https://careers.sig.com> (referer: https://www.google.com/search?q=sig)
+[2026-03-03 20:21:23] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:21:27] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:21:34] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:21:34] INFO: Fetched (200) <GET https://jobs.netflix.com> (referer: https://www.google.com/search?q=netflix)
+[2026-03-03 20:21:36] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:21:59] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:21:59] INFO: Fetched (301) <GET https://jobs.google.com> (referer: https://www.google.com/search?q=google)
+[2026-03-03 20:21:59] INFO: Fetched (200) <GET https://jobs.google.com/about/> (referer: https://www.google.com/search?q=google)
+[2026-03-03 20:21:59] INFO: Fetched (301) <GET https://careers.google.com> (referer: https://www.google.com/search?q=google)
+[2026-03-03 20:21:59] INFO: Fetched (200) <GET https://www.google.com/about/careers/applications/> (referer: https://www.google.com/search?q=google)
+[2026-03-03 20:21:59] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:03] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:07] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:11] INFO: Fetched (303) <GET https://careers.snowflake.com> (referer: https://www.google.com/search?q=snowflake)
+[2026-03-03 20:22:11] INFO: Fetched (200) <GET https://careers.snowflake.com/us/en> (referer: https://www.google.com/search?q=snowflake)
+[2026-03-03 20:22:11] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:12] INFO: Fetched (404) <GET https://jobs.waymo.com> (referer: https://www.google.com/search?q=waymo)
+[2026-03-03 20:22:14] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:16] INFO: Fetched (200) <GET https://careers.linkedin.com> (referer: https://www.google.com/search?q=linkedin)
+[2026-03-03 20:22:16] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:20] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:20] INFO: Fetched (307) <GET https://jobs.uber.com> (referer: https://www.google.com/search?q=uber)
+[2026-03-03 20:22:20] INFO: Fetched (200) <GET https://jobs.uber.com/en/> (referer: https://www.google.com/search?q=uber)
+[2026-03-03 20:22:22] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:24] INFO: Fetched (200) <GET https://careers.airbnb.com> (referer: https://www.google.com/search?q=airbnb)
+[2026-03-03 20:22:24] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:27] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:31] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:32] INFO: Fetched (301) <GET https://jobs.coinbase.com> (referer: https://www.google.com/search?q=coinbase)
+[2026-03-03 20:22:32] INFO: Fetched (200) <GET https://www.coinbase.com/careers> (referer: https://www.google.com/search?q=coinbase)
+[2026-03-03 20:22:33] INFO: Fetched (301) <GET https://careers.coinbase.com> (referer: https://www.google.com/search?q=coinbase)
+[2026-03-03 20:22:33] INFO: Fetched (200) <GET https://www.coinbase.com/careers> (referer: https://www.google.com/search?q=coinbase)
+[2026-03-03 20:22:33] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:33] INFO: Fetched (302) <GET https://jobs.nvidia.com> (referer: https://www.google.com/search?q=nvidia)
+[2026-03-03 20:22:33] INFO: Fetched (200) <GET https://jobs.nvidia.com/careers> (referer: https://www.google.com/search?q=nvidia)
+[2026-03-03 20:22:34] INFO: Fetched (301) <GET https://careers.nvidia.com> (referer: https://www.google.com/search?q=nvidia)
+[2026-03-03 20:22:34] INFO: Fetched (200) <GET https://www.nvidia.com/en-us/about-nvidia/careers/> (referer: https://www.google.com/search?q=nvidia)
+[2026-03-03 20:22:34] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:38] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:41] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-03 20:22:45] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+jobs_cache_refresh_done
+/Users/gurthang/.openclaw/workspace-mage-luz/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+[2026-03-04 06:00:05] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:00:10] INFO: Fetched (302) <GET https://anthropic.com/careers> (referer: https://www.google.com/search?q=anthropic)
+[2026-03-04 06:00:10] INFO: Fetched (200) <GET https://www.anthropic.com/careers> (referer: https://www.google.com/search?q=anthropic)
+[2026-03-04 06:00:10] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:00:14] INFO: Fetched (308) <GET https://openai.com/careers> (referer: https://www.google.com/search?q=openai)
+[2026-03-04 06:00:14] INFO: Fetched (200) <GET https://openai.com/careers/> (referer: https://www.google.com/search?q=openai)
+[2026-03-04 06:00:14] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:00:20] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:00:25] INFO: Fetched (302) <GET https://rentech.com/careers> (referer: https://www.google.com/search?q=rentech)
+[2026-03-04 06:00:25] INFO: Fetched (302) <GET https://rentech.com/careers> (referer: https://www.google.com/search?q=rentech)
+[2026-03-04 06:00:25] INFO: Fetched (302) <GET https://www.rentech.com/careers> (referer: https://www.google.com/search?q=rentech)
+[2026-03-04 06:00:25] INFO: Fetched (200) <GET https://www.rentech.com/> (referer: https://www.google.com/search?q=rentech)
+[2026-03-04 06:00:25] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:00:28] INFO: Fetched (200) <GET https://careers.tgs.com> (referer: https://www.google.com/search?q=tgs)
+[2026-03-04 06:00:28] INFO: Fetched (301) <GET https://tgs.com/careers> (referer: https://www.google.com/search?q=tgs)
+[2026-03-04 06:00:28] INFO: Fetched (200) <GET https://www.tgs.com/careers> (referer: https://www.google.com/search?q=tgs)
+[2026-03-04 06:00:28] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:00:38] INFO: Fetched (307) <GET https://xai.com/careers> (referer: https://www.google.com/search?q=xai)
+[2026-03-04 06:00:38] INFO: Fetched (200) <GET https://xai.com/en> (referer: https://www.google.com/search?q=xai)
+[2026-03-04 06:00:38] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:00:46] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:00:54] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:00:58] INFO: Fetched (200) <GET https://hrt.com/careers> (referer: https://www.google.com/search?q=hrt)
+[2026-03-04 06:00:58] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:02] INFO: Fetched (301) <GET https://citadel.com/careers> (referer: https://www.google.com/search?q=citadel)
+[2026-03-04 06:01:02] INFO: Fetched (301) <GET https://citadel.com/careers> (referer: https://www.google.com/search?q=citadel)
+[2026-03-04 06:01:02] INFO: Fetched (301) <GET https://www.citadel.com/careers> (referer: https://www.google.com/search?q=citadel)
+[2026-03-04 06:01:02] INFO: Fetched (200) <GET https://www.citadel.com/careers/> (referer: https://www.google.com/search?q=citadel)
+[2026-03-04 06:01:02] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:08] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:12] INFO: Fetched (301) <GET https://jump.com/careers> (referer: https://www.google.com/search?q=jump)
+[2026-03-04 06:01:12] INFO: Fetched (404) <GET https://www.jump.com/careers> (referer: https://www.google.com/search?q=jump)
+[2026-03-04 06:01:12] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:16] INFO: Fetched (301) <GET https://optiver.com/careers> (referer: https://www.google.com/search?q=optiver)
+[2026-03-04 06:01:16] INFO: Fetched (200) <GET https://optiver.com/working-at-optiver/career-opportunities/> (referer: https://www.google.com/search?q=optiver)
+[2026-03-04 06:01:16] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:21] INFO: Fetched (301) <GET https://two-sigma.com/careers> (referer: https://www.google.com/search?q=two-sigma)
+[2026-03-04 06:01:21] INFO: Fetched (301) <GET https://two-sigma.com/careers> (referer: https://www.google.com/search?q=two-sigma)
+[2026-03-04 06:01:21] INFO: Fetched (301) <GET https://www.twosigma.com/careers> (referer: https://www.google.com/search?q=two-sigma)
+[2026-03-04 06:01:21] INFO: Fetched (200) <GET https://www.twosigma.com/careers/> (referer: https://www.google.com/search?q=two-sigma)
+[2026-03-04 06:01:21] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:29] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:33] INFO: Fetched (200) <GET https://five-rings.com/careers> (referer: https://www.google.com/search?q=five-rings)
+[2026-03-04 06:01:33] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:37] INFO: Fetched (302) <GET https://spacex.com/careers> (referer: https://www.google.com/search?q=spacex)
+[2026-03-04 06:01:37] INFO: Fetched (200) <GET https://www.spacex.com/careers> (referer: https://www.google.com/search?q=spacex)
+[2026-03-04 06:01:37] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:40] INFO: Fetched (308) <GET https://careers.imc.com> (referer: https://www.google.com/search?q=imc)
+[2026-03-04 06:01:40] INFO: Fetched (200) <GET https://www.imc.com/eu/search-careers> (referer: https://www.google.com/search?q=imc)
+[2026-03-04 06:01:41] INFO: Fetched (301) <GET https://imc.com/careers> (referer: https://www.google.com/search?q=imc)
+[2026-03-04 06:01:41] INFO: Fetched (301) <GET https://imc.com/careers> (referer: https://www.google.com/search?q=imc)
+[2026-03-04 06:01:41] INFO: Fetched (307) <GET https://www.imc.com/> (referer: https://www.google.com/search?q=imc)
+[2026-03-04 06:01:41] INFO: Fetched (200) <GET https://www.imc.com/us/> (referer: https://www.google.com/search?q=imc)
+[2026-03-04 06:01:41] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:45] INFO: Fetched (200) <GET https://careers.sig.com> (referer: https://www.google.com/search?q=sig)
+[2026-03-04 06:01:45] INFO: Fetched (301) <GET https://sig.com/careers> (referer: https://www.google.com/search?q=sig)
+[2026-03-04 06:01:45] INFO: Fetched (200) <GET https://sig.com/careers/> (referer: https://www.google.com/search?q=sig)
+[2026-03-04 06:01:45] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:50] INFO: Fetched (301) <GET https://drw.com/careers> (referer: https://www.google.com/search?q=drw)
+[2026-03-04 06:01:50] INFO: Fetched (301) <GET https://drw.com/careers> (referer: https://www.google.com/search?q=drw)
+[2026-03-04 06:01:50] INFO: Fetched (308) <GET https://www.drw.com/careers> (referer: https://www.google.com/search?q=drw)
+[2026-03-04 06:01:50] INFO: Fetched (200) <GET https://www.drw.com/work-at-drw> (referer: https://www.google.com/search?q=drw)
+[2026-03-04 06:01:50] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:56] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:01:57] INFO: Fetched (200) <GET https://jobs.netflix.com> (referer: https://www.google.com/search?q=netflix)
+[2026-03-04 06:01:59] INFO: Fetched (301) <GET https://netflix.com/careers> (referer: https://www.google.com/search?q=netflix)
+[2026-03-04 06:01:59] INFO: Fetched (301) <GET https://netflix.com/careers> (referer: https://www.google.com/search?q=netflix)
+[2026-03-04 06:01:59] INFO: Fetched (302) <GET https://www.netflix.com/careers> (referer: https://www.google.com/search?q=netflix)
+[2026-03-04 06:01:59] INFO: Fetched (200) <GET https://www.netflix.com/NotFound?prev=https%3A%2F%2Fwww.netflix.com%2Fcareers> (referer: https://www.google.com/search?q=netflix)
+[2026-03-04 06:01:59] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:02:21] INFO: Fetched (302) <GET https://anduril.com/careers> (referer: https://www.google.com/search?q=anduril)
+[2026-03-04 06:02:21] INFO: Fetched (200) <GET https://www.anduril.com/careers> (referer: https://www.google.com/search?q=anduril)
+[2026-03-04 06:02:21] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:02:22] INFO: Fetched (301) <GET https://jobs.google.com> (referer: https://www.google.com/search?q=google)
+[2026-03-04 06:02:22] INFO: Fetched (200) <GET https://jobs.google.com/about/> (referer: https://www.google.com/search?q=google)
+[2026-03-04 06:02:22] INFO: Fetched (301) <GET https://careers.google.com> (referer: https://www.google.com/search?q=google)
+[2026-03-04 06:02:22] INFO: Fetched (200) <GET https://www.google.com/about/careers/applications/> (referer: https://www.google.com/search?q=google)
+[2026-03-04 06:02:23] INFO: Fetched (301) <GET https://google.com/careers> (referer: https://www.google.com/search?q=google)
+[2026-03-04 06:02:23] INFO: Fetched (301) <GET https://google.com/careers> (referer: https://www.google.com/search?q=google)
+[2026-03-04 06:02:23] INFO: Fetched (301) <GET https://www.google.com/careers> (referer: https://www.google.com/search?q=google)
+[2026-03-04 06:02:23] INFO: Fetched (301) <GET https://google.com/careers> (referer: https://www.google.com/search?q=google)
+[2026-03-04 06:02:23] INFO: Fetched (301) <GET https://google.com/careers> (referer: https://www.google.com/search?q=google)
+[2026-03-04 06:02:23] INFO: Fetched (301) <GET https://www.google.com/careers> (referer: https://www.google.com/search?q=google)
+[2026-03-04 06:02:23] INFO: Fetched (301) <GET https://careers.google.com/> (referer: https://www.google.com/search?q=google)
+[2026-03-04 06:02:23] INFO: Fetched (200) <GET https://www.google.com/about/careers/applications/> (referer: https://www.google.com/search?q=google)
+[2026-03-04 06:02:23] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:02:27] INFO: Fetched (301) <GET https://meta.com/careers> (referer: https://www.google.com/search?q=meta)
+[2026-03-04 06:02:27] INFO: Fetched (301) <GET https://meta.com/careers> (referer: https://www.google.com/search?q=meta)
+[2026-03-04 06:02:27] INFO: Fetched (301) <GET https://www.meta.com/careers> (referer: https://www.google.com/search?q=meta)
+[2026-03-04 06:02:27] INFO: Fetched (400) <GET https://www.metacareers.com/?utm_source=meta.com&utm_medium=redirect> (referer: https://www.google.com/search?q=meta)
+[2026-03-04 06:02:27] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:02:31] INFO: Fetched (200) <GET https://sierra-ai.com/careers> (referer: https://www.google.com/search?q=sierra-ai)
+[2026-03-04 06:02:32] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:02:37] INFO: Fetched (303) <GET https://careers.snowflake.com> (referer: https://www.google.com/search?q=snowflake)
+[2026-03-04 06:02:37] INFO: Fetched (200) <GET https://careers.snowflake.com/us/en> (referer: https://www.google.com/search?q=snowflake)
+[2026-03-04 06:02:39] INFO: Fetched (301) <GET https://snowflake.com/careers> (referer: https://www.google.com/search?q=snowflake)
+[2026-03-04 06:02:39] INFO: Fetched (301) <GET https://snowflake.com/careers> (referer: https://www.google.com/search?q=snowflake)
+[2026-03-04 06:02:39] INFO: Fetched (301) <GET https://www.snowflake.com/careers> (referer: https://www.google.com/search?q=snowflake)
+[2026-03-04 06:02:39] INFO: Fetched (301) <GET https://snowflake.com/careers> (referer: https://www.google.com/search?q=snowflake)
+[2026-03-04 06:02:39] INFO: Fetched (301) <GET https://snowflake.com/careers> (referer: https://www.google.com/search?q=snowflake)
+[2026-03-04 06:02:39] INFO: Fetched (301) <GET https://www.snowflake.com/careers> (referer: https://www.google.com/search?q=snowflake)
+[2026-03-04 06:02:39] INFO: Fetched (301) <GET https://www.snowflake.com/careers/> (referer: https://www.google.com/search?q=snowflake)
+[2026-03-04 06:02:39] INFO: Fetched (200) <GET https://careers.snowflake.com/us/en> (referer: https://www.google.com/search?q=snowflake)
+[2026-03-04 06:02:39] WARNING: This logic is deprecated now, and have no effect; It will be removed with v0.3. Use `Fetcher.configure()` instead before fetching
+[2026-03-04 06:02:39] INFO: Fetched (404) <GET https://jobs.waymo.com> (referer: https://www.google.com/search?q=waymo)
+[2026-03-04 06:02:42] INFO: Fetched (301) <GET https://waymo.com/careers> (referer: https://www.google.com/search?q=waymo)
+[2026-03-04 06:02:42] INFO: Fetched (301) <GET https://waymo.com/careers> (referer: https://www.google.com/search?q=waymo)
+[2026-03-04 06:02:42] INFO: Fetched (301) <GET https://waymo.com/careers/> (referer: https://www.google.com/search?q=waymo)
+[2026-03-04 06:02:42] INFO: Fetched (200) <GET https://careers.withwaymo.com> (referer: https://www.google.com/search?q=waymo)
+jobs_cache_refresh_done

@@ -1,0 +1,77 @@
+{
+  "users": [
+    {
+      "id": "add6225c-e900-46ee-9c5d-aad9ebb27caf",
+      "email": "industry@example.com",
+      "password_hash": "$argon2id$v=19$m=65536,t=3,p=4$PHBgl6FW/O3BaTREO0PxAg$Ytsr4Hap8e6CmjGnE3wfks5QaaJ/KDUFXQWUjGewiL8",
+      "linkedin_sub": "",
+      "is_paid": false,
+      "plan": "free",
+      "preferred_locations": [
+        "Remote"
+      ],
+      "preferred_industries": [
+        "fintech"
+      ],
+      "created_at": "2026-03-04T15:41:30.097157+00:00",
+      "selected_role": "Software Engineer"
+    }
+  ],
+  "resumes": [
+    {
+      "id": "r1",
+      "user_id": "add6225c-e900-46ee-9c5d-aad9ebb27caf",
+      "parsed_text": "python backend api engineer",
+      "role_profile": {
+        "keywords": [
+          "python",
+          "backend",
+          "api"
+        ],
+        "top_lanes": [
+          {
+            "titles": [
+              "Software Engineer"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "companies": [],
+  "jobs": [
+    {
+      "id": "j2",
+      "title": "Quant Trader",
+      "description": "market making",
+      "location": "New York",
+      "company_name": "Jane Street",
+      "tier": "S+",
+      "apply_url": "https://x"
+    }
+  ],
+  "matches": [],
+  "variants": [],
+  "events": [],
+  "jobs_cache": [
+    {
+      "id": "j1",
+      "title": "Software Engineer",
+      "description": "python backend api",
+      "location": "Remote",
+      "company_name": "Databricks",
+      "tier": "A++",
+      "apply_url": "https://x"
+    },
+    {
+      "id": "j2",
+      "title": "Quant Trader",
+      "description": "market making",
+      "location": "New York",
+      "company_name": "Jane Street",
+      "tier": "S+",
+      "apply_url": "https://x"
+    }
+  ],
+  "jobs_cache_refreshing": true
+}
